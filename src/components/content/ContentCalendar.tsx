@@ -33,7 +33,7 @@ const ContentCalendar: React.FC = () => {
       case 'twitter':
         return <Twitter size={16} />;
       case 'linkedin':
-        return <LinkedIn size={16} />;
+        return <Linkedin size={16} />;
     }
   };
 
