@@ -21,7 +21,8 @@ import {
   createNewChat, 
   deleteChat,
   ChatMessage,
-  ChatSession
+  ChatSession,
+  supabase // Import the direct supabase instance
 } from '@/utils/supabaseClient';
 import { 
   generateContent, 
@@ -79,7 +80,20 @@ const AIChat = () => {
   useEffect(() => {
     const loadHistory = async () => {
       try {
+        // Add debug information
+        console.log('Supabase client:', supabase);
+        console.log('Testing Supabase connection...');
+        
+        // Test if we can connect to Supabase
+        const { data: testData, error: testError } = await supabase
+          .from('chat_sessions')
+          .select('count')
+          .limit(1);
+          
+        console.log('Connection test result:', { testData, testError });
+        
         const history = await getChatHistory();
+        console.log('Loaded chat history:', history);
         setChatHistory(history);
         
         // Load the most recent chat if available
@@ -123,7 +137,9 @@ const AIChat = () => {
   const handleSendMessage = async () => {
     if (!message.trim()) return;
     if (!activeChatId) {
+      console.log('Creating new chat...');
       const newChat = await createNewChat();
+      console.log('New chat created:', newChat);
       if (!newChat) return;
       setActiveChatId(newChat.id);
       setChatHistory(prev => [newChat, ...prev]);
@@ -145,7 +161,9 @@ const AIChat = () => {
     
     try {
       // Save to database
-      await saveChatMessage(userMessage);
+      console.log('Saving user message:', userMessage);
+      const savedMessage = await saveChatMessage(userMessage);
+      console.log('User message saved:', savedMessage);
       
       // Generate AI response
       const response = await generateContent({
@@ -163,7 +181,9 @@ const AIChat = () => {
       };
       
       // Save to database
-      await saveChatMessage(assistantMessage);
+      console.log('Saving assistant message:', assistantMessage);
+      const savedAssistantMessage = await saveChatMessage(assistantMessage);
+      console.log('Assistant message saved:', savedAssistantMessage);
       
       // Update UI
       setCurrentMessages(prev => [...prev, assistantMessage]);

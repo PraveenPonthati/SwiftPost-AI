@@ -20,39 +20,47 @@ export interface ChatSession {
 }
 
 // Initialize Supabase client
-const createSupabaseClient = () => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase environment variables');
-    return null;
-  }
-  
-  return createClient(supabaseUrl, supabaseKey);
-};
+const supabaseUrl = 'https://hnnzwjwezfdyqqarfigv.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhubnp3andlemZkeXFxYXJmaWd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzNjc3MzQsImV4cCI6MjA1OTk0MzczNH0.4Zfn23r1bwrSvbxMUn89670-ofPqVx721GT5jzivFgM';
 
-// Get Supabase client
+// Create a single supabase client instance
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Get Supabase client - now using the direct instance
 const getClient = () => {
-  const client = createSupabaseClient();
-  if (!client) {
+  if (!supabase) {
     toast({
       title: 'Supabase Connection Error',
-      description: 'Please check your Supabase credentials in the .env file.',
+      description: 'Unable to connect to Supabase.',
       variant: 'destructive',
     });
   }
-  return client;
+  return supabase;
+};
+
+// Add current user ID to chat sessions - if authenticated
+const addUserIdToSession = async () => {
+  const { data } = await supabase.auth.getSession();
+  return data?.session?.user?.id || null;
 };
 
 // Chat History functions
 export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<ChatSession | null> => {
   const supabase = getClient();
   if (!supabase) return null;
+  
+  // Get user ID if authenticated
+  const userId = await addUserIdToSession();
+  
+  const newChat = {
+    title: initialTitle,
+    // Only add user_id if authenticated
+    ...(userId && { user_id: userId }),
+  };
 
   const { data, error } = await supabase
     .from('chat_sessions')
-    .insert([{ title: initialTitle }])
+    .insert([newChat])
     .select()
     .single();
 
@@ -72,11 +80,21 @@ export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<
 export const getChatHistory = async (): Promise<ChatSession[]> => {
   const supabase = getClient();
   if (!supabase) return [];
-
-  const { data, error } = await supabase
+  
+  // Get user ID if authenticated
+  const userId = await addUserIdToSession();
+  
+  let query = supabase
     .from('chat_sessions')
     .select('*')
     .order('updated_at', { ascending: false });
+  
+  // If authenticated, only get user's chats
+  if (userId) {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching chat history:', error);
