@@ -355,7 +355,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
                 Copy
               </Button>
             </div>
-            <div className="p-6 bg-muted rounded-md whitespace-pre-wrap text-content font-content">
+            <div className="p-6 bg-muted rounded-md whitespace-pre-wrap text-lg text-gray-800 font-serif leading-relaxed">
               {generatedText}
             </div>
           </div>
