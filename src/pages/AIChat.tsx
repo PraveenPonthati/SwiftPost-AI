@@ -1,435 +1,328 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { generateContent, getApiKey, getAvailableModels } from '@/utils/aiService';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 import { 
-  SendHorizonal, 
-  Settings, 
+  PlusCircle, 
+  SendHorizontal, 
   Sparkles, 
-  User, 
-  Bot, 
-  Copy, 
-  Trash,
-  ChevronDown
-} from 'lucide-react';
+  Loader2,
+  Settings
+} from "lucide-react";
+import ChatHistory from '@/components/content/ChatHistory';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-
-type Message = {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-};
+  getChatHistory, 
+  getChatMessages, 
+  saveChatMessage, 
+  createNewChat, 
+  deleteChat,
+  ChatMessage,
+  ChatSession
+} from '@/utils/supabaseClient';
+import { 
+  generateContent, 
+  getAvailableModels, 
+  getApiKey
+} from '@/utils/aiService';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AIChat = () => {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: 'Hello! I am your AI assistant. How can I help you create content today?',
-      sender: 'ai',
-      timestamp: new Date(),
-    },
-  ]);
-  const [prompt, setPrompt] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('mock');
-  const [model, setModel] = useState<string>('default');
-  const [tone, setTone] = useState('professional');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  // Check if API keys are set
-  const openaiKeyExists = !!getApiKey('openai');
-  const geminiKeyExists = !!getApiKey('gemini');
+  const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
+  const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('openai');
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
 
-  // Get available models for the selected provider
-  const availableModels = getAvailableModels(provider);
-
-  // Set default model when provider changes
+  // Load available models when provider changes
   useEffect(() => {
-    if (availableModels.length > 0) {
-      setModel(availableModels[0].id);
-    } else {
-      setModel('default');
+    const models = getAvailableModels(provider);
+    setAvailableModels(models.map(model => model.id));
+    
+    // Select first model as default
+    if (models.length > 0) {
+      setSelectedModel(models[0].id);
     }
-  }, [provider]);
+    
+    // Check if API key exists
+    if (provider !== 'mock') {
+      const apiKey = getApiKey(provider);
+      if (!apiKey) {
+        toast({
+          title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
+          description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
+          variant: "destructive"
+        });
+      }
+    }
+  }, [provider, toast]);
 
+  // Load chat history
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const loadHistory = async () => {
+      try {
+        const history = await getChatHistory();
+        setChatHistory(history);
+        
+        // Load the most recent chat if available
+        if (history.length > 0 && !activeChatId) {
+          setActiveChatId(history[0].id);
+          loadMessages(history[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load chat history', error);
+      }
+    };
+    
+    loadHistory();
+  }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // Load messages for a chat
+  const loadMessages = async (chatId: string) => {
+    try {
+      const messages = await getChatMessages(chatId);
+      setCurrentMessages(messages);
+    } catch (error) {
+      console.error('Failed to load chat messages', error);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: prompt,
-      sender: 'user',
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setPrompt('');
-    setLoading(true);
-
+  // Start a new chat
+  const handleNewChat = async () => {
     try {
-      // Check if API key is set for selected provider
-      if (provider === 'openai' && !openaiKeyExists) {
-        toast({
-          title: 'API Key Missing',
-          description: 'Please add your OpenAI API key in the settings tab.',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
+      const newChat = await createNewChat();
+      if (newChat) {
+        setChatHistory(prev => [newChat, ...prev]);
+        setActiveChatId(newChat.id);
+        setCurrentMessages([]);
       }
-      
-      if (provider === 'gemini' && !geminiKeyExists) {
-        toast({
-          title: 'API Key Missing',
-          description: 'Please add your Gemini API key in the settings tab.',
-          variant: 'destructive',
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Generate content
-      const response = await generateContent({
-        prompt: userMessage.content,
-        provider,
-        model,
-        tone,
-      });
-
-      // Add AI response
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: response,
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error generating content:', error);
+      console.error('Failed to create new chat', error);
+    }
+  };
+
+  // Handle sending messages
+  const handleSendMessage = async () => {
+    if (!message.trim()) return;
+    if (!activeChatId) {
+      const newChat = await createNewChat();
+      if (!newChat) return;
+      setActiveChatId(newChat.id);
+      setChatHistory(prev => [newChat, ...prev]);
+    }
+
+    setLoading(true);
+    const chatId = activeChatId as string;
+    
+    // Save user message
+    const userMessage: ChatMessage = {
+      chat_id: chatId,
+      role: 'user',
+      content: message
+    };
+    
+    // Update UI optimistically
+    setCurrentMessages(prev => [...prev, userMessage]);
+    setMessage('');
+    
+    try {
+      // Save to database
+      await saveChatMessage(userMessage);
+      
+      // Generate AI response
+      const response = await generateContent({
+        prompt: message,
+        provider,
+        model: selectedModel,
+        tone: 'professional'
+      });
+      
+      // Save AI response
+      const assistantMessage: ChatMessage = {
+        chat_id: chatId,
+        role: 'assistant',
+        content: response
+      };
+      
+      // Save to database
+      await saveChatMessage(assistantMessage);
+      
+      // Update UI
+      setCurrentMessages(prev => [...prev, assistantMessage]);
+      
+      // Refresh history to update timestamps
+      const updatedHistory = await getChatHistory();
+      setChatHistory(updatedHistory);
+    } catch (error: any) {
+      console.error('Error in chat process:', error);
       toast({
-        title: 'Generation Failed',
-        description: error instanceof Error ? error.message : 'Failed to generate content',
-        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to process your message',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({
-      title: 'Copied',
-      description: 'Message copied to clipboard',
-    });
-  };
-
-  const clearChat = () => {
-    setMessages([
-      {
-        id: '1',
-        content: 'Hello! I am your AI assistant. How can I help you create content today?',
-        sender: 'ai',
-        timestamp: new Date(),
-      },
-    ]);
-  };
-
   return (
-    <div className="flex flex-col w-full">
-      <div className="ml-64 p-8 w-full max-w-[1400px] mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">AI Chat</h1>
+    <div className="flex h-screen bg-background">
+      {/* Chat history sidebar */}
+      <div className="w-64 border-r bg-muted/30 p-4 flex flex-col h-screen fixed left-0 top-0 pt-16">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold">Chat History</h2>
+          <Button variant="ghost" size="sm" onClick={handleNewChat}>
+            <PlusCircle className="h-4 w-4 mr-1" />
+            New Chat
+          </Button>
         </div>
-
-        <Tabs defaultValue="chat">
-          <TabsList className="mb-4">
-            <TabsTrigger value="chat">Chat</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="chat" className="space-y-4">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles size={18} className="text-brand-600" />
-                  AI Chat Assistant
-                </CardTitle>
-                <CardDescription>
-                  Chat with our AI assistant to generate content for your social media
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Label>Provider:</Label>
-                    <Select value={provider} onValueChange={(val) => setProvider(val as 'openai' | 'gemini' | 'mock')}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select provider" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mock">Demo (Mock)</SelectItem>
-                        <SelectItem value="openai" disabled={!openaiKeyExists}>
-                          OpenAI {!openaiKeyExists && '(API Key Missing)'}
-                        </SelectItem>
-                        <SelectItem value="gemini" disabled={!geminiKeyExists}>
-                          Gemini {!geminiKeyExists && '(API Key Missing)'}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Label>Tone:</Label>
-                    <Select value={tone} onValueChange={setTone}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select tone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="professional">Professional</SelectItem>
-                        <SelectItem value="casual">Casual</SelectItem>
-                        <SelectItem value="enthusiastic">Enthusiastic</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <Button variant="outline" size="icon" onClick={clearChat}>
-                    <Trash size={16} />
-                  </Button>
+        
+        <ChatHistory 
+          history={chatHistory.map(chat => ({
+            id: chat.id,
+            title: chat.title,
+            created_at: chat.created_at,
+            preview: ''
+          }))}
+          onSelectChat={(chatId) => {
+            setActiveChatId(chatId);
+            loadMessages(chatId);
+          }}
+          onDeleteChat={async (chatId) => {
+            const success = await deleteChat(chatId);
+            if (success) {
+              setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+              if (activeChatId === chatId) {
+                setActiveChatId(null);
+                setCurrentMessages([]);
+              }
+            }
+          }}
+          activeChat={activeChatId || undefined}
+        />
+      </div>
+      
+      {/* Main chat area */}
+      <div className="ml-64 flex-1 flex flex-col h-screen pt-16 pb-4">
+        {/* Chat messages */}
+        <ScrollArea className="flex-1 p-4">
+          {currentMessages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <Sparkles className="h-12 w-12 mb-2 text-primary" />
+              <h2 className="text-2xl font-bold mb-2">How can I help you today?</h2>
+              <p className="text-muted-foreground text-center max-w-md">
+                Ask me anything or select a previous conversation from the sidebar.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {currentMessages.map((msg, index) => (
+                <div 
+                  key={index} 
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <Card 
+                    className={`p-4 max-w-[80%] ${
+                      msg.role === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
+                  </Card>
                 </div>
-                
-                <Card className="border border-input">
-                  <ScrollArea className="h-[500px] p-4">
-                    <div className="space-y-4">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex ${
-                            message.sender === 'user' ? 'justify-end' : 'justify-start'
-                          }`}
-                        >
-                          <div
-                            className={`flex max-w-[80%] rounded-lg p-4 ${
-                              message.sender === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
-                            }`}
-                          >
-                            <div className="mr-2 mt-0.5">
-                              {message.sender === 'user' ? (
-                                <User size={16} />
-                              ) : (
-                                <Bot size={16} />
-                              )}
-                            </div>
-                            <div className="space-y-2">
-                              <p className="whitespace-pre-wrap">{message.content}</p>
-                              <div className="flex items-center justify-between text-xs opacity-50">
-                                <span>
-                                  {message.timestamp.toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </span>
-                                {message.sender === 'ai' && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => handleCopy(message.content)}
-                                  >
-                                    <Copy size={12} />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </ScrollArea>
-                </Card>
-              </CardContent>
-              <CardFooter>
-                <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-                  <div className="flex-grow flex items-center relative">
-                    <Input
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Type your message..."
-                      disabled={loading}
-                      className="pr-24"
-                    />
-                    
-                    {/* Model selector dropdown inside prompt bar */}
-                    {provider !== 'mock' && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
-                              {availableModels.find(m => m.id === model)?.name || 'Select Model'}
-                              <ChevronDown className="ml-1 h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {availableModels.map((aiModel) => (
-                              <DropdownMenuItem 
-                                key={aiModel.id} 
-                                onClick={() => setModel(aiModel.id)}
-                                className="text-xs"
-                              >
-                                {aiModel.name}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Button type="submit" disabled={loading || !prompt.trim()}>
-                    {loading ? (
-                      <span className="flex items-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Processing...
-                      </span>
-                    ) : (
-                      <span className="flex items-center">
-                        <SendHorizonal size={16} className="mr-2" />
-                        Send
-                      </span>
-                    )}
-                  </Button>
-                </form>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings size={18} />
-                  API Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure your AI provider API keys
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="openai-key">OpenAI API Key</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="openai-key"
-                      type="password"
-                      placeholder="sk-..."
-                      defaultValue={getApiKey('openai')}
-                      onChange={(e) => {
-                        const { value } = e.target;
-                        if (value) {
-                          localStorage.setItem('openai_api_key', value);
-                          toast({
-                            title: 'API Key Saved',
-                            description: 'Your OpenAI API key has been saved.'
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Get your API key from{' '}
-                    <a
-                      href="https://platform.openai.com/api-keys"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      OpenAI's website
-                    </a>
-                  </p>
+              ))}
+              {loading && (
+                <div className="flex justify-start">
+                  <Card className="p-4 bg-muted">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </Card>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="gemini-key">Gemini API Key</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="gemini-key"
-                      type="password"
-                      placeholder="AI..."
-                      defaultValue={getApiKey('gemini')}
-                      onChange={(e) => {
-                        const { value } = e.target;
-                        if (value) {
-                          localStorage.setItem('gemini_api_key', value);
-                          toast({
-                            title: 'API Key Saved',
-                            description: 'Your Gemini API key has been saved.'
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Get your API key from{' '}
-                    <a
-                      href="https://ai.google.dev/tutorials/setup"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Google AI Studio
-                    </a>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+        
+        <Separator />
+        
+        {/* Message input */}
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-end space-x-2">
+            <Select
+              value={provider}
+              onValueChange={(value) => setProvider(value as 'openai' | 'gemini' | 'mock')}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="gemini">Gemini</SelectItem>
+                <SelectItem value="mock">Demo Mode</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Model" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableModels.map(model => (
+                  <SelectItem key={model} value={model}>{model}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Button variant="outline" size="icon" asChild>
+              <a href="/settings">
+                <Settings className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+          
+          <div className="flex items-end gap-2">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1 min-h-[80px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={loading || !message.trim()}
+              size="icon" 
+              className="h-10 w-10"
+            >
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <SendHorizontal className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
