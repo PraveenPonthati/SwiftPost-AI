@@ -53,6 +53,23 @@ export const testSupabaseConnection = async () => {
   }
 };
 
+// Helper function to generate a title from prompt text
+export const generateTitleFromPrompt = (prompt: string, maxLength: number = 50): string => {
+  // Remove special characters and extra spaces
+  const cleanPrompt = prompt.replace(/[^\w\s]/gi, ' ').replace(/\s+/g, ' ').trim();
+  
+  // If prompt is short enough, use it directly
+  if (cleanPrompt.length <= maxLength) {
+    return cleanPrompt;
+  }
+  
+  // Extract important words (nouns, verbs, etc.) - we'll just take first few words for simplicity
+  const words = cleanPrompt.split(' ');
+  const importantWords = words.slice(0, 5);
+  
+  return importantWords.join(' ') + (words.length > 5 ? '...' : '');
+};
+
 // Chat History functions
 export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<ChatSession | null> => {
   try {

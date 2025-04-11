@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface AIGeneratorProps {
-  onContentGenerated: (text: string) => void;
+  onContentGenerated: (text: string, prompt: string) => void;
 }
 
 const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
@@ -88,7 +88,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       
       // If auto-save is enabled, automatically pass the content to the parent component
       if (autoSave) {
-        onContentGenerated(text);
+        onContentGenerated(text, options.prompt);
         toast({
           title: "Content Auto-Saved",
           description: "Generated content has been automatically saved."
@@ -136,7 +136,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       
       // If auto-save is enabled, automatically pass the content to the parent component
       if (autoSave) {
-        onContentGenerated(text);
+        onContentGenerated(text, iterateOptions.prompt);
         toast({
           title: "Iteration Auto-Saved",
           description: "New version has been automatically saved."
@@ -170,7 +170,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       return;
     }
     
-    onContentGenerated(generatedText);
+    onContentGenerated(generatedText, options.prompt);
     toast({
       title: "Content Saved",
       description: "Generated content has been saved and moved to the customize step."

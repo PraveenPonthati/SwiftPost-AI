@@ -42,6 +42,7 @@ import SavedContentSidebar from '@/components/content/SavedContentSidebar';
 import { Content, SocialPlatform, Template } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent, getConnectedAccounts } from '@/utils/socialService';
+import { generateTitleFromPrompt } from '@/utils/supabaseClient';
 
 const Generate = () => {
   const { toast } = useToast();
@@ -83,24 +84,42 @@ const Generate = () => {
     initializeContent();
   }, []);
   
-  const handleContentGenerated = async (text: string) => {
-    if (!currentContent) return;
-    
+  const handleContentGenerated = async (text: string, prompt: string) => {
     try {
       setIsLoading(true);
-      setCurrentContent(prev => {
-        if (!prev) return null;
-        return { 
-          ...prev, 
+      
+      // Generate a title based on the prompt
+      const title = generateTitleFromPrompt(prompt);
+      
+      // Create new content if we don't have one yet, or update existing one
+      if (!currentContent) {
+        const content = await createContent({
+          title: title,
+          generatedText: text,
+          editedText: text,
+          selectedTemplateId: null,
+          imageUrl: null,
+          platforms: []
+        });
+        setCurrentContent(content);
+      } else {
+        // Update existing content with new title and text
+        await updateContent(currentContent.id, { 
+          title: title,
           generatedText: text,
           editedText: text
-        };
-      });
-      
-      await updateContent(currentContent.id, { 
-        generatedText: text,
-        editedText: text
-      });
+        });
+        
+        setCurrentContent(prev => {
+          if (!prev) return null;
+          return { 
+            ...prev, 
+            title: title,
+            generatedText: text,
+            editedText: text
+          };
+        });
+      }
       
       setActiveTab('customize');
     } catch (error) {
@@ -377,238 +396,239 @@ const Generate = () => {
         </Button>
       </div>
       
-      {currentContent && (
-        <div className="flex gap-6">
-          {showSidebar && (
-            <div className="w-64 border rounded-md p-4">
-              <h2 className="font-semibold mb-3">Saved Drafts</h2>
-              <SavedContentSidebar 
-                onSelectContent={handleSelectContent} 
-                activeContentId={currentContent.id} 
-              />
-            </div>
-          )}
-          
-          <div className={`flex-1 ${showSidebar ? 'max-w-[calc(100%-280px)]' : 'w-full'}`}>
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 mb-8">
-                <TabsTrigger value="generate">1. Generate</TabsTrigger>
-                <TabsTrigger value="customize" disabled={!currentContent.generatedText}>
-                  2. Customize
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="publish" 
-                  disabled={!currentContent.editedText || !currentContent.selectedTemplateId}
-                >
-                  3. Publish
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="generate">
-                <AIGenerator onContentGenerated={handleContentGenerated} />
-              </TabsContent>
-              
-              <TabsContent value="customize">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                  <div className="md:col-span-3 space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Customize Content</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="title">Title (for internal use)</Label>
-                          <Input
-                            id="title"
-                            value={currentContent.title}
-                            onChange={handleTitleChange}
-                            placeholder="Give your post a title"
-                          />
+      <div className="flex gap-6">
+        {showSidebar && (
+          <div className="w-64 border rounded-md p-4">
+            <h2 className="font-semibold mb-3">Saved Drafts</h2>
+            <SavedContentSidebar 
+              onSelectContent={handleSelectContent} 
+              activeContentId={currentContent?.id} 
+            />
+          </div>
+        )}
+        
+        <div className={`flex-1 ${showSidebar ? 'max-w-[calc(100%-280px)]' : 'w-full'}`}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="generate">1. Generate</TabsTrigger>
+              <TabsTrigger 
+                value="customize" 
+                disabled={!currentContent?.generatedText}
+              >
+                2. Customize
+              </TabsTrigger>
+              <TabsTrigger 
+                value="publish" 
+                disabled={!currentContent?.editedText || !currentContent?.selectedTemplateId}
+              >
+                3. Publish
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="generate">
+              <AIGenerator onContentGenerated={handleContentGenerated} />
+            </TabsContent>
+            
+            <TabsContent value="customize">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="md:col-span-3 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Customize Content</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Title (for internal use)</Label>
+                        <Input
+                          id="title"
+                          value={currentContent.title}
+                          onChange={handleTitleChange}
+                          placeholder="Give your post a title"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="content">Content</Label>
+                        <Textarea
+                          id="content"
+                          value={currentContent.editedText}
+                          onChange={handleTextChange}
+                          placeholder="Edit your generated content"
+                          rows={8}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <TemplateSelector
+                    selectedTemplateId={currentContent.selectedTemplateId}
+                    onSelectTemplate={handleTemplateSelected}
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <PostPreview content={currentContent} />
+                  
+                  <Card className="mt-6">
+                    <CardFooter className="pt-6">
+                      <Button 
+                        onClick={() => setActiveTab('publish')} 
+                        className="w-full"
+                        disabled={!currentContent.editedText || !currentContent.selectedTemplateId}
+                      >
+                        Continue
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="publish">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <div className="md:col-span-3 space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Publishing Options</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Select platforms</h3>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant={currentContent.platforms.includes('instagram') ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => togglePlatform('instagram')}
+                            className={currentContent.platforms.includes('instagram') ? "bg-brand-600" : ""}
+                            disabled={!connectedAccounts.some(a => a.platform === 'instagram')}
+                          >
+                            <Instagram className="mr-1 h-4 w-4" />
+                            Instagram
+                          </Button>
+                          <Button
+                            variant={currentContent.platforms.includes('facebook') ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => togglePlatform('facebook')}
+                            className={currentContent.platforms.includes('facebook') ? "bg-brand-600" : ""}
+                            disabled={!connectedAccounts.some(a => a.platform === 'facebook')}
+                          >
+                            <Facebook className="mr-1 h-4 w-4" />
+                            Facebook
+                          </Button>
+                          <Button
+                            variant={currentContent.platforms.includes('twitter') ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => togglePlatform('twitter')}
+                            className={currentContent.platforms.includes('twitter') ? "bg-brand-600" : ""}
+                            disabled={!connectedAccounts.some(a => a.platform === 'twitter')}
+                          >
+                            <Twitter className="mr-1 h-4 w-4" />
+                            Twitter
+                          </Button>
+                          <Button
+                            variant={currentContent.platforms.includes('linkedin') ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => togglePlatform('linkedin')}
+                            className={currentContent.platforms.includes('linkedin') ? "bg-brand-600" : ""}
+                            disabled={!connectedAccounts.some(a => a.platform === 'linkedin')}
+                          >
+                            <Linkedin className="mr-1 h-4 w-4" />
+                            LinkedIn
+                          </Button>
                         </div>
                         
-                        <div className="space-y-2">
-                          <Label htmlFor="content">Content</Label>
-                          <Textarea
-                            id="content"
-                            value={currentContent.editedText}
-                            onChange={handleTextChange}
-                            placeholder="Edit your generated content"
-                            rows={8}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <TemplateSelector
-                      selectedTemplateId={currentContent.selectedTemplateId}
-                      onSelectTemplate={handleTemplateSelected}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <PostPreview content={currentContent} />
-                    
-                    <Card className="mt-6">
-                      <CardFooter className="pt-6">
-                        <Button 
-                          onClick={() => setActiveTab('publish')} 
-                          className="w-full"
-                          disabled={!currentContent.editedText || !currentContent.selectedTemplateId}
+                        {connectedAccounts.length === 0 && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            No social media accounts connected. Connect accounts in Settings.
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setActiveTab('customize')}
+                      >
+                        Back
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setScheduleDialogOpen(true)}
+                          disabled={!isValid()}
                         >
-                          Continue
-                          <ArrowRight className="ml-2 h-4 w-4" />
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          Schedule
                         </Button>
-                      </CardFooter>
-                    </Card>
-                  </div>
+                        <Button
+                          onClick={handlePublishNow}
+                          disabled={!isValid() || publishing}
+                        >
+                          {publishing ? "Publishing..." : "Publish Now"}
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
                 </div>
-              </TabsContent>
+                
+                <div className="md:col-span-2">
+                  <PostPreview 
+                    content={currentContent} 
+                    onSchedule={() => setScheduleDialogOpen(true)}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Schedule Post</DialogTitle>
+                <DialogDescription>
+                  Choose when to publish your content
+                </DialogDescription>
+              </DialogHeader>
               
-              <TabsContent value="publish">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                  <div className="md:col-span-3 space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Publishing Options</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div>
-                          <h3 className="text-sm font-medium mb-2">Select platforms</h3>
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              variant={currentContent.platforms.includes('instagram') ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => togglePlatform('instagram')}
-                              className={currentContent.platforms.includes('instagram') ? "bg-brand-600" : ""}
-                              disabled={!connectedAccounts.some(a => a.platform === 'instagram')}
-                            >
-                              <Instagram className="mr-1 h-4 w-4" />
-                              Instagram
-                            </Button>
-                            <Button
-                              variant={currentContent.platforms.includes('facebook') ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => togglePlatform('facebook')}
-                              className={currentContent.platforms.includes('facebook') ? "bg-brand-600" : ""}
-                              disabled={!connectedAccounts.some(a => a.platform === 'facebook')}
-                            >
-                              <Facebook className="mr-1 h-4 w-4" />
-                              Facebook
-                            </Button>
-                            <Button
-                              variant={currentContent.platforms.includes('twitter') ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => togglePlatform('twitter')}
-                              className={currentContent.platforms.includes('twitter') ? "bg-brand-600" : ""}
-                              disabled={!connectedAccounts.some(a => a.platform === 'twitter')}
-                            >
-                              <Twitter className="mr-1 h-4 w-4" />
-                              Twitter
-                            </Button>
-                            <Button
-                              variant={currentContent.platforms.includes('linkedin') ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => togglePlatform('linkedin')}
-                              className={currentContent.platforms.includes('linkedin') ? "bg-brand-600" : ""}
-                              disabled={!connectedAccounts.some(a => a.platform === 'linkedin')}
-                            >
-                              <Linkedin className="mr-1 h-4 w-4" />
-                              LinkedIn
-                            </Button>
-                          </div>
-                          
-                          {connectedAccounts.length === 0 && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              No social media accounts connected. Connect accounts in Settings.
-                            </p>
-                          )}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setActiveTab('customize')}
-                        >
-                          Back
-                        </Button>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => setScheduleDialogOpen(true)}
-                            disabled={!isValid()}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            Schedule
-                          </Button>
-                          <Button
-                            onClick={handlePublishNow}
-                            disabled={!isValid() || publishing}
-                          >
-                            {publishing ? "Publishing..." : "Publish Now"}
-                          </Button>
-                        </div>
-                      </CardFooter>
-                    </Card>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <PostPreview 
-                      content={currentContent} 
-                      onSchedule={() => setScheduleDialogOpen(true)}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-            
-            <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Schedule Post</DialogTitle>
-                  <DialogDescription>
-                    Choose when to publish your content
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="grid gap-4 py-4">
-                  <div>
-                    <Label>Date</Label>
-                    <div className="mt-2">
-                      <Calendar
-                        mode="single"
-                        selected={scheduleDate}
-                        onSelect={setScheduleDate}
-                        disabled={(date) => date < new Date()}
-                        className="rounded-md border"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="time">Time</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={scheduleTime}
-                      onChange={(e) => setScheduleTime(e.target.value)}
-                      className="mt-2"
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label>Date</Label>
+                  <div className="mt-2">
+                    <Calendar
+                      mode="single"
+                      selected={scheduleDate}
+                      onSelect={setScheduleDate}
+                      disabled={(date) => date < new Date()}
+                      className="rounded-md border"
                     />
                   </div>
                 </div>
                 
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSchedule}>
-                    Schedule Post
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+                <div>
+                  <Label htmlFor="time">Time</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSchedule}>
+                  Schedule Post
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
-      )}
+      </div>
     </div>
   );
 };
