@@ -26,6 +26,7 @@ export interface Content {
   scheduledFor: Date | null;
   status: 'draft' | 'scheduled' | 'published';
   platforms: SocialPlatform[];
+  user_id?: string;
 }
 
 export interface ScheduledPost {

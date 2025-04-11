@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Types for chat messages and history
 export interface ChatMessage {
@@ -18,12 +19,8 @@ export interface ChatSession {
   user_id?: string;
 }
 
-// Initialize Supabase client with provided keys directly
-const supabaseUrl = 'https://hnnzwjwezfdyqqarfigv.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhubnp3andlemZkeXFxYXJmaWd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzNjc3MzQsImV4cCI6MjA1OTk0MzczNH0.4Zfn23r1bwrSvbxMUn89670-ofPqVx721GT5jzivFgM';
-
-// Create a single supabase client instance
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Export the supabase client from the integrations directory
+export { supabase };
 
 // Test Supabase connection
 export const testSupabaseConnection = async () => {

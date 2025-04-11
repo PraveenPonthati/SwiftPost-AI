@@ -65,6 +65,78 @@ export type Database = {
         }
         Relationships: []
       }
+      content: {
+        Row: {
+          created_at: string
+          edited_text: string | null
+          generated_text: string | null
+          id: string
+          image_url: string | null
+          platforms: string[] | null
+          scheduled_for: string | null
+          selected_template_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          edited_text?: string | null
+          generated_text?: string | null
+          id?: string
+          image_url?: string | null
+          platforms?: string[] | null
+          scheduled_for?: string | null
+          selected_template_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          edited_text?: string | null
+          generated_text?: string | null
+          id?: string
+          image_url?: string | null
+          platforms?: string[] | null
+          scheduled_for?: string | null
+          selected_template_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          category: string | null
+          dimensions: Json | null
+          id: string
+          name: string
+          platforms: string[] | null
+          preview_image: string | null
+        }
+        Insert: {
+          category?: string | null
+          dimensions?: Json | null
+          id?: string
+          name: string
+          platforms?: string[] | null
+          preview_image?: string | null
+        }
+        Update: {
+          category?: string | null
+          dimensions?: Json | null
+          id?: string
+          name?: string
+          platforms?: string[] | null
+          preview_image?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

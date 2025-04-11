@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,15 +11,32 @@ import {
   BarChart4,
   Clock,
   ArrowRight,
-  Pencil
+  Pencil,
+  Loader2
 } from 'lucide-react';
 import { Content } from '@/types/content';
 import { useContent } from '@/contexts/ContentContext';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { content, scheduledPosts, setActiveContent } = useContent();
+  const { content, scheduledPosts, setActiveContent, loadContent } = useContent();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await loadContent();
+      } catch (error) {
+        console.error("Error loading content:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [loadContent]);
   
   // Stats for dashboard
   const stats = {
@@ -47,6 +64,15 @@ const Index = () => {
     setActiveContent(item);
     navigate('/generate');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading dashboard data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col w-full">
