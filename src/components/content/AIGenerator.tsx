@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -6,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Sparkles, Copy, Settings, Save } from 'lucide-react';
+import { Loader2, Sparkles, Copy, Settings, Save, RefreshCcw } from 'lucide-react';
 import { generateContent, GenerationOptions, getAvailableModels, AIModel, getApiKey } from '@/utils/aiService';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,6 +28,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('gemini');
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [autoSave, setAutoSave] = useState(false);
+  const [showLoadingAnimation, setShowLoadingAnimation] = useState(false);
   const [options, setOptions] = useState<GenerationOptions>({
     prompt: '',
     topic: '',
@@ -79,6 +81,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     }
 
     setLoading(true);
+    setShowLoadingAnimation(true);
     try {
       const text = await generateContent(options);
       setGeneratedText(text);
@@ -106,6 +109,54 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       });
     } finally {
       setLoading(false);
+      setShowLoadingAnimation(false);
+    }
+  };
+  
+  const handleIterate = async () => {
+    if (!options.prompt.trim()) {
+      toast({
+        title: "No Previous Prompt",
+        description: "Please generate content first before iterating.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    setShowLoadingAnimation(true);
+    try {
+      // Add a slight variation to the prompt to ensure different results
+      const iterateOptions = {
+        ...options,
+        prompt: options.prompt + " (Alternative version)"
+      };
+      const text = await generateContent(iterateOptions);
+      setGeneratedText(text);
+      
+      // If auto-save is enabled, automatically pass the content to the parent component
+      if (autoSave) {
+        onContentGenerated(text);
+        toast({
+          title: "Iteration Auto-Saved",
+          description: "New version has been automatically saved."
+        });
+      } else {
+        toast({
+          title: "New Version Generated",
+          description: "A new version of your content has been created."
+        });
+      }
+    } catch (error: any) {
+      console.error('Error iterating content:', error);
+      toast({
+        title: "Iteration Failed",
+        description: error.message || "An error occurred while creating a new version. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+      setShowLoadingAnimation(false);
     }
   };
 
@@ -283,7 +334,19 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
           />
         </div>
         
-        {generatedText && (
+        {showLoadingAnimation && loading && (
+          <div className="my-8 relative overflow-hidden h-24 rounded-md">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-background/80 backdrop-blur-sm p-4 rounded-md flex items-center gap-3">
+                <Loader2 size={24} className="animate-spin text-primary" />
+                <span className="font-medium">Creating amazing content...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {generatedText && !loading && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between">
               <Label>Generated Content</Label>
@@ -292,7 +355,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
                 Copy
               </Button>
             </div>
-            <div className="p-4 bg-muted rounded-md whitespace-pre-wrap text-sm">
+            <div className="p-6 bg-muted rounded-md whitespace-pre-wrap text-content font-content">
               {generatedText}
             </div>
           </div>
@@ -317,15 +380,29 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
           )}
         </Button>
         
-        {!autoSave && generatedText && (
-          <Button 
-            onClick={handleSave} 
-            className="w-full sm:w-auto"
-            variant="outline"
-          >
-            <Save size={16} className="mr-2" />
-            Save Content
-          </Button>
+        {generatedText && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button
+              onClick={handleIterate}
+              disabled={loading}
+              variant="outline"
+              className="w-full sm:w-auto"
+            >
+              <RefreshCcw size={16} className="mr-2" />
+              Iterate
+            </Button>
+            
+            {!autoSave && (
+              <Button 
+                onClick={handleSave} 
+                className="w-full sm:w-auto"
+                variant="outline"
+              >
+                <Save size={16} className="mr-2" />
+                Save Content
+              </Button>
+            )}
+          </div>
         )}
       </CardFooter>
     </Card>
