@@ -43,7 +43,12 @@ export const getAvailableModels = (provider: 'openai' | 'gemini' | 'mock'): AIMo
 };
 
 // API key management
-export const getApiKey = (provider: 'openai' | 'gemini'): string => {
+export const getApiKey = (provider: 'openai' | 'gemini' | 'mock'): string => {
+  // For mock provider, no API key is needed
+  if (provider === 'mock') {
+    return 'mock-key';
+  }
+  
   const key = localStorage.getItem(`${provider}_api_key`);
   return key || '';
 };

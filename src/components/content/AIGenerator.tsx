@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Sparkles, Copy, Settings } from 'lucide-react';
 import { generateContent, GenerationOptions, getAvailableModels, AIModel, getApiKey } from '@/utils/aiService';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,16 +45,20 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     // Set default model for the selected provider
     if (models.length > 0) {
       setOptions(prev => ({ ...prev, provider, model: models[0].id }));
+    } else {
+      setOptions(prev => ({ ...prev, provider, model: 'default' }));
     }
     
-    // Check if API key exists
-    const apiKey = getApiKey(provider);
-    if (!apiKey && provider !== 'mock') {
-      toast({
-        title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
-        description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
-        variant: "destructive"
-      });
+    // Check if API key exists - skip this check for mock provider
+    if (provider !== 'mock') {
+      const apiKey = getApiKey(provider);
+      if (!apiKey) {
+        toast({
+          title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
+          description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
+          variant: "destructive"
+        });
+      }
     }
   }, [provider, toast]);
 
