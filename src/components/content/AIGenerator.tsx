@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -7,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Sparkles, Copy, Settings } from 'lucide-react';
+import { Loader2, Sparkles, Copy, Settings, Save } from 'lucide-react';
 import { generateContent, GenerationOptions, getAvailableModels, AIModel, getApiKey } from '@/utils/aiService';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -25,16 +24,17 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
-  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('gemini'); // Changed default to gemini
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('gemini');
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
+  const [autoSave, setAutoSave] = useState(false);
   const [options, setOptions] = useState<GenerationOptions>({
     prompt: '',
     topic: '',
     tone: 'professional',
     length: 'medium',
     includeHashtags: true,
-    provider: 'gemini', // Changed default to gemini
-    model: 'models/gemini-2.0-flash' // Set default to Gemini 2.0 Flash
+    provider: 'gemini',
+    model: 'models/gemini-2.0-flash'
   });
 
   useEffect(() => {
@@ -82,11 +82,21 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     try {
       const text = await generateContent(options);
       setGeneratedText(text);
-      onContentGenerated(text);
-      toast({
-        title: "Content Generated",
-        description: "AI has successfully generated content based on your prompt."
-      });
+      
+      // If auto-save is enabled, automatically pass the content to the parent component
+      if (autoSave) {
+        onContentGenerated(text);
+        toast({
+          title: "Content Auto-Saved",
+          description: "Generated content has been automatically saved."
+        });
+      } else {
+        // Just notify that content was generated, but not saved
+        toast({
+          title: "Content Generated",
+          description: "AI has successfully generated content. Click Save to use it."
+        });
+      }
     } catch (error: any) {
       console.error('Error generating content:', error);
       toast({
@@ -99,11 +109,38 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     }
   };
 
+  const handleSave = () => {
+    if (!generatedText) {
+      toast({
+        title: "No Content",
+        description: "Please generate content first before saving.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    onContentGenerated(generatedText);
+    toast({
+      title: "Content Saved",
+      description: "Generated content has been saved and moved to the customize step."
+    });
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedText);
     toast({
       title: "Copied",
       description: "Content copied to clipboard"
+    });
+  };
+
+  const toggleAutoSave = (checked: boolean) => {
+    setAutoSave(checked);
+    toast({
+      title: checked ? "Auto-Save Enabled" : "Auto-Save Disabled",
+      description: checked 
+        ? "Generated content will be automatically saved" 
+        : "You'll need to manually save generated content"
     });
   };
 
@@ -115,25 +152,37 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
             <Sparkles size={18} className="text-brand-600" />
             AI Content Generator
           </CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Settings size={16} className="mr-2" />
-                AI Provider
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setProvider('openai')} className={provider === 'openai' ? 'bg-accent' : ''}>
-                OpenAI
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setProvider('gemini')} className={provider === 'gemini' ? 'bg-accent' : ''}>
-                Gemini
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setProvider('mock')} className={provider === 'mock' ? 'bg-accent' : ''}>
-                Demo Mode
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="auto-save"
+                checked={autoSave}
+                onCheckedChange={toggleAutoSave}
+              />
+              <Label htmlFor="auto-save" className="text-sm cursor-pointer">
+                Auto-Save
+              </Label>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <Settings size={16} className="mr-2" />
+                  AI Provider
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setProvider('openai')} className={provider === 'openai' ? 'bg-accent' : ''}>
+                  OpenAI
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setProvider('gemini')} className={provider === 'gemini' ? 'bg-accent' : ''}>
+                  Gemini
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setProvider('mock')} className={provider === 'mock' ? 'bg-accent' : ''}>
+                  Demo Mode
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <CardDescription>
           Generate engaging social media content with AI
@@ -249,7 +298,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col sm:flex-row gap-2">
         <Button 
           onClick={handleGenerate} 
           disabled={loading} 
@@ -267,6 +316,17 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
             </>
           )}
         </Button>
+        
+        {!autoSave && generatedText && (
+          <Button 
+            onClick={handleSave} 
+            className="w-full sm:w-auto"
+            variant="outline"
+          >
+            <Save size={16} className="mr-2" />
+            Save Content
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
