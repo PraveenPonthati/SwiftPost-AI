@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Types for chat messages and history
 export interface ChatMessage {
   id?: string;
-  chat_id: string;
+  chat_id: string; // Changed from chat-id to match the interface requirements
   role: 'user' | 'assistant';
   content: string;
   created_at?: string;
@@ -129,7 +130,7 @@ export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> =>
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
-      .eq('chat_id', chatId)
+      .eq('chat-id', chatId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -143,7 +144,17 @@ export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> =>
     }
     
     console.log(`Successfully fetched ${data?.length || 0} messages for chat ${chatId}`);
-    return data || [];
+    
+    // Transform data to match the ChatMessage interface
+    const messages: ChatMessage[] = data.map(item => ({
+      id: item.id,
+      chat_id: item['chat-id'],
+      role: item.role as 'user' | 'assistant',
+      content: item.content,
+      created_at: item.created_at
+    }));
+    
+    return messages;
   } catch (error: any) {
     console.error('Exception fetching chat messages:', error);
     toast({
@@ -158,9 +169,17 @@ export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> =>
 export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage | null> => {
   try {
     console.log('Saving chat message:', message);
+    
+    // Transform to match the database column name
+    const dbMessage = {
+      'chat-id': message.chat_id,
+      content: message.content,
+      role: message.role
+    };
+    
     const { data, error } = await supabase
       .from('chat_messages')
-      .insert([message])
+      .insert([dbMessage])
       .select()
       .single();
 
@@ -186,7 +205,16 @@ export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage
       console.error('Error updating chat timestamp:', updateResult.error);
     }
     
-    return data;
+    // Transform response to match ChatMessage interface
+    const savedMessage: ChatMessage = {
+      id: data.id,
+      chat_id: data['chat-id'],
+      role: data.role as 'user' | 'assistant',
+      content: data.content,
+      created_at: data.created_at
+    };
+    
+    return savedMessage;
   } catch (error: any) {
     console.error('Exception saving chat message:', error);
     toast({

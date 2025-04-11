@@ -16,7 +16,7 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
   onSelectContent,
   activeContentId,
 }) => {
-  const { content, loadContent } = useContent();
+  const { content, loadContent, deleteContent } = useContent();
   
   // Refresh content when needed
   const handleRefresh = async () => {
@@ -82,7 +82,7 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
                 className="opacity-0 group-hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // The deleteContent function is handled by the parent component
+                  deleteContent(item.id);
                 }}
               >
                 <Trash2 className="h-4 w-4" />

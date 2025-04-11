@@ -13,6 +13,8 @@ export interface Template {
   platforms: SocialPlatform[];
 }
 
+export type ContentStatus = 'draft' | 'scheduled' | 'published';
+
 export interface Content {
   id: string;
   title: string;
@@ -24,7 +26,7 @@ export interface Content {
   createdAt: Date;
   updatedAt: Date;
   scheduledFor: Date | null;
-  status: 'draft' | 'scheduled' | 'published';
+  status: ContentStatus;
   platforms: SocialPlatform[];
   user_id?: string;
 }

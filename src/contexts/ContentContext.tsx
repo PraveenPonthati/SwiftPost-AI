@@ -1,8 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Content, Template, ScheduledPost } from "@/types/content";
+import { Content, ContentStatus, Template, ScheduledPost } from "@/types/content";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 interface ContentContextType {
   content: Content[];
@@ -77,12 +77,14 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         createdAt: new Date(item.created_at),
         updatedAt: new Date(item.updated_at),
         scheduledFor: item.scheduled_for ? new Date(item.scheduled_for) : null,
-        platforms: item.platforms || [],
+        platforms: item.platforms ? item.platforms.map(p => p as any) : [],
         selectedTemplateId: item.selected_template_id,
         editedText: item.edited_text || '',
         generatedText: item.generated_text || '',
         imageUrl: item.image_url || null,
         customizations: {},
+        // Ensure status is one of the valid ContentStatus types
+        status: (item.status as ContentStatus) || 'draft',
       }));
       
       console.log(`Loaded ${transformedContent.length} content items`);
@@ -117,10 +119,11 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         const transformedTemplates: Template[] = dbTemplates.map(template => ({
           id: template.id,
           name: template.name,
-          previewImage: template.preview_image,
-          dimensions: template.dimensions,
+          previewImage: template.preview_image || '',
+          // Transform the JSONB dimensions to proper TypeScript type
+          dimensions: transformDimensions(template.dimensions),
           category: template.category as 'post' | 'story' | 'carousel',
-          platforms: template.platforms || [],
+          platforms: template.platforms ? template.platforms.map(p => p as any) : [],
         }));
         
         setTemplates(transformedTemplates);
@@ -132,6 +135,30 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       console.error('Unexpected error loading templates:', error);
       // Fall back to default templates
       loadTemplates();
+    }
+  };
+
+  // Helper to transform JSON dimensions to correct type
+  const transformDimensions = (dimensions: Json | null): { width: number; height: number } => {
+    if (!dimensions) {
+      return { width: 1080, height: 1080 }; // Default dimensions
+    }
+    
+    try {
+      // If it's already the right shape, just return it
+      if (typeof dimensions === 'object' && dimensions !== null && 'width' in dimensions && 'height' in dimensions) {
+        const width = Number(dimensions.width);
+        const height = Number(dimensions.height);
+        if (!isNaN(width) && !isNaN(height)) {
+          return { width, height };
+        }
+      }
+      
+      // Otherwise fallback to defaults
+      return { width: 1080, height: 1080 };
+    } catch (e) {
+      console.error('Error transforming dimensions:', e);
+      return { width: 1080, height: 1080 };
     }
   };
 
@@ -203,7 +230,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         edited_text: newContent.editedText || "",
         selected_template_id: newContent.selectedTemplateId || null,
         image_url: newContent.imageUrl || null,
-        scheduled_for: newContent.scheduledFor || null,
+        scheduled_for: newContent.scheduledFor ? newContent.scheduledFor.toISOString() : null,
         status: newContent.status || "draft",
         platforms: newContent.platforms || []
       };
@@ -236,8 +263,9 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
         scheduledFor: data.scheduled_for ? new Date(data.scheduled_for) : null,
-        status: data.status,
-        platforms: data.platforms || []
+        status: data.status as ContentStatus,
+        platforms: data.platforms ? data.platforms.map(p => p as any) : [],
+        user_id: data.user_id
       };
 
       setContent(prev => [contentItem, ...prev]);
@@ -280,7 +308,9 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       if (updatedFields.editedText !== undefined) supabaseUpdate.edited_text = updatedFields.editedText;
       if (updatedFields.selectedTemplateId !== undefined) supabaseUpdate.selected_template_id = updatedFields.selectedTemplateId;
       if (updatedFields.imageUrl !== undefined) supabaseUpdate.image_url = updatedFields.imageUrl;
-      if (updatedFields.scheduledFor !== undefined) supabaseUpdate.scheduled_for = updatedFields.scheduledFor;
+      if (updatedFields.scheduledFor !== undefined) {
+        supabaseUpdate.scheduled_for = updatedFields.scheduledFor ? updatedFields.scheduledFor.toISOString() : null;
+      }
       if (updatedFields.status !== undefined) supabaseUpdate.status = updatedFields.status;
       if (updatedFields.platforms !== undefined) supabaseUpdate.platforms = updatedFields.platforms;
       
