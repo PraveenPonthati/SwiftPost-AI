@@ -6,6 +6,7 @@ import { MessageSquare, Trash2, RefreshCw, ChevronLeft, ChevronRight } from 'luc
 import { useContent } from '@/contexts/ContentContext';
 import { format } from 'date-fns';
 import { Content } from '@/types/content';
+import { motion } from 'framer-motion';
 
 interface SavedContentSidebarProps {
   onSelectContent: (content: Content) => void;
@@ -34,25 +35,30 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
 
   if (!isVisible) {
     return (
-      <div className="w-10 border rounded-md p-2 flex flex-col items-center">
+      <motion.div 
+        className="w-10 border rounded-md p-2 flex flex-col items-center cursor-pointer"
+        onClick={onToggleVisibility}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        initial={{ opacity: 0.9 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      >
         <div className="font-semibold mb-3 rotate-90 whitespace-nowrap transform origin-center my-20">
           Saved Drafts
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={onToggleVisibility}
-          className="mt-auto"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      </motion.div>
     );
   }
 
   if (sortedContent.length === 0) {
     return (
-      <div className="w-64 border rounded-md p-4">
+      <motion.div 
+        className="w-64 border rounded-md p-4"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Saved Drafts</h2>
           <Button 
@@ -76,19 +82,30 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
             Refresh
           </Button>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="w-64 border rounded-md p-4">
-      <div className="flex items-center justify-between mb-3">
+    <motion.div 
+      className="w-64 border rounded-md p-4"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div 
+        className="flex items-center justify-between mb-3 cursor-pointer"
+        onClick={onToggleVisibility}
+      >
         <h2 className="font-semibold">Saved Drafts</h2>
         <div className="flex space-x-2">
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={handleRefresh}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRefresh();
+            }}
             className="h-8 w-8 p-0"
           >
             <RefreshCw className="h-4 w-4" />
@@ -96,7 +113,10 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={onToggleVisibility}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVisibility();
+            }}
             className="h-8 w-8 p-0"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -116,7 +136,7 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
               onClick={() => onSelectContent(item)}
             >
               <div className="flex items-center justify-between">
-                <div className="max-w-[80%]">
+                <div className="max-w-[75%]">
                   <p className="font-medium truncate">{item.title || 'Untitled Content'}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {item.updatedAt ? format(new Date(item.updatedAt), 'PPP') : 'Unknown date'} · {item.status}
@@ -125,7 +145,7 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="opacity-100 h-8 w-8 p-0 ml-1 min-w-[32px]"
+                  className="h-8 w-8 p-0 flex-shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteContent(item.id);
@@ -138,7 +158,7 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
           ))}
         </div>
       </ScrollArea>
-    </div>
+    </motion.div>
   );
 };
 
