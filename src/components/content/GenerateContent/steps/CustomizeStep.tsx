@@ -30,6 +30,10 @@ export const CustomizeStep: React.FC<CustomizeStepProps> = ({
 }) => {
   if (!content) return null;
 
+  const handleTemplateSelected = (templateId: string) => {
+    onTemplateSelected(templateId);
+  };
+
   return (
     <TabsContent value="customize" forceMount hidden={!active}>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -64,7 +68,7 @@ export const CustomizeStep: React.FC<CustomizeStepProps> = ({
           
           <TemplateSelector
             selectedTemplateId={content.selectedTemplateId}
-            onSelectTemplate={onTemplateSelected}
+            onSelectTemplate={handleTemplateSelected}
           />
         </div>
         

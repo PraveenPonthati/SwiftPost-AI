@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, PanelLeft, PanelLeftClose } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useContent } from '@/contexts/ContentContext';
-import { Content } from '@/types/content';
+import { Content, SocialPlatform } from '@/types/content';
 import { generateTitleFromPrompt } from '@/utils/supabaseClient';
 
 import { StepTabs } from './StepTabs';
@@ -12,7 +12,7 @@ import { PublishStep } from './steps/PublishStep';
 import { CustomizeStep } from './steps/CustomizeStep';
 import { GenerateStep } from './steps/GenerateStep';
 import { ScheduleDialog } from './ScheduleDialog';
-import { SavedContentSidebar } from '../SavedContentSidebar';
+import SavedContentSidebar from '../SavedContentSidebar';
 
 export const GenerateContentPage: React.FC = () => {
   const { toast } = useToast();
@@ -160,7 +160,7 @@ export const GenerateContentPage: React.FC = () => {
     }
   };
   
-  const handlePlatformToggle = async (platform: string, isSelected: boolean) => {
+  const handlePlatformToggle = async (platform: SocialPlatform, isSelected: boolean) => {
     if (!currentContent) return;
     
     const platforms = isSelected

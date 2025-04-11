@@ -7,7 +7,7 @@ import { CheckCircle2 } from 'lucide-react';
 
 interface TemplateSelectorProps {
   selectedTemplateId: string | null;
-  onSelectTemplate: (template: Template) => void;
+  onSelectTemplate: (templateId: string) => void;
   filter?: {
     category?: string;
     platform?: string;
@@ -45,7 +45,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           {filteredTemplates.map((template) => (
             <div 
               key={template.id}
-              onClick={() => onSelectTemplate(template)}
+              onClick={() => onSelectTemplate(template.id)}
               className={`
                 relative cursor-pointer rounded-md overflow-hidden border-2 transition-all
                 ${selectedTemplateId === template.id ? 'border-brand-600 ring-2 ring-brand-200' : 'border-border hover:border-brand-200'}
