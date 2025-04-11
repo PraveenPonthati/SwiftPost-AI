@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Content, ContentStatus, Template, ScheduledPost } from "@/types/content";
+import { Content, ContentStatus, Template, ScheduledPost, SocialPlatform } from "@/types/content";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Json } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/types";
 
 interface ContentContextType {
   content: Content[];
@@ -38,17 +38,24 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   const [templates, setTemplates] = useState<Template[]>([]);
   const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
   const [activeContent, setActiveContent] = useState<Content | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load content from Supabase on mount
   useEffect(() => {
-    loadContent();
-    loadTemplatesData();
-    // Load scheduled posts from localStorage until we implement that in Supabase
-    const savedScheduledPosts = localStorage.getItem("scheduledPosts");
-    if (savedScheduledPosts) setScheduledPosts(JSON.parse(savedScheduledPosts));
-  }, []);
+    const initialize = async () => {
+      if (isInitialized) return;
+      
+      await loadContent();
+      await loadTemplatesData();
+      
+      const savedScheduledPosts = localStorage.getItem("scheduledPosts");
+      if (savedScheduledPosts) setScheduledPosts(JSON.parse(savedScheduledPosts));
+      
+      setIsInitialized(true);
+    };
 
-  // Save scheduled posts to localStorage when it changes
+    initialize();
+  }, [isInitialized]);
+
   useEffect(() => {
     localStorage.setItem("scheduledPosts", JSON.stringify(scheduledPosts));
   }, [scheduledPosts]);
@@ -71,20 +78,20 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         return;
       }
       
-      // Transform the data to match our Content type
       const transformedContent: Content[] = data.map(item => ({
-        ...item,
+        id: item.id,
+        title: item.title,
+        generatedText: item.generated_text || "",
+        editedText: item.edited_text || "",
+        selectedTemplateId: item.selected_template_id,
+        imageUrl: item.image_url,
+        customizations: {},
         createdAt: new Date(item.created_at),
         updatedAt: new Date(item.updated_at),
         scheduledFor: item.scheduled_for ? new Date(item.scheduled_for) : null,
-        platforms: item.platforms ? item.platforms.map(p => p as any) : [],
-        selectedTemplateId: item.selected_template_id,
-        editedText: item.edited_text || '',
-        generatedText: item.generated_text || '',
-        imageUrl: item.image_url || null,
-        customizations: {},
-        // Ensure status is one of the valid ContentStatus types
         status: (item.status as ContentStatus) || 'draft',
+        platforms: item.platforms ? item.platforms.map(p => p as SocialPlatform) : [],
+        user_id: item.user_id
       }));
       
       console.log(`Loaded ${transformedContent.length} content items`);
@@ -94,9 +101,29 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     }
   };
 
+  const transformDimensions = (dimensions: any): { width: number; height: number } => {
+    if (!dimensions) {
+      return { width: 1080, height: 1080 }; // Default dimensions
+    }
+    
+    try {
+      if (typeof dimensions === 'object' && dimensions !== null && 'width' in dimensions && 'height' in dimensions) {
+        const width = Number(dimensions.width);
+        const height = Number(dimensions.height);
+        if (!isNaN(width) && !isNaN(height)) {
+          return { width, height };
+        }
+      }
+      
+      return { width: 1080, height: 1080 };
+    } catch (e) {
+      console.error('Error transforming dimensions:', e);
+      return { width: 1080, height: 1080 };
+    }
+  };
+
   const loadTemplatesData = async () => {
     try {
-      // Check if templates exist in Supabase
       const { data: dbTemplates, error } = await supabase
         .from('templates')
         .select('*');
@@ -109,61 +136,31 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
           variant: 'destructive',
         });
         
-        // Fall back to default templates
         loadTemplates();
         return;
       }
       
       if (dbTemplates && dbTemplates.length > 0) {
-        // Transform database templates to match our Template type
         const transformedTemplates: Template[] = dbTemplates.map(template => ({
           id: template.id,
           name: template.name,
           previewImage: template.preview_image || '',
-          // Transform the JSONB dimensions to proper TypeScript type
           dimensions: transformDimensions(template.dimensions),
           category: template.category as 'post' | 'story' | 'carousel',
-          platforms: template.platforms ? template.platforms.map(p => p as any) : [],
+          platforms: template.platforms ? template.platforms.map(p => p as SocialPlatform) : [],
         }));
         
         setTemplates(transformedTemplates);
       } else {
-        // No templates in database, use defaults
         loadTemplates();
       }
     } catch (error) {
       console.error('Unexpected error loading templates:', error);
-      // Fall back to default templates
       loadTemplates();
     }
   };
 
-  // Helper to transform JSON dimensions to correct type
-  const transformDimensions = (dimensions: Json | null): { width: number; height: number } => {
-    if (!dimensions) {
-      return { width: 1080, height: 1080 }; // Default dimensions
-    }
-    
-    try {
-      // If it's already the right shape, just return it
-      if (typeof dimensions === 'object' && dimensions !== null && 'width' in dimensions && 'height' in dimensions) {
-        const width = Number(dimensions.width);
-        const height = Number(dimensions.height);
-        if (!isNaN(width) && !isNaN(height)) {
-          return { width, height };
-        }
-      }
-      
-      // Otherwise fallback to defaults
-      return { width: 1080, height: 1080 };
-    } catch (e) {
-      console.error('Error transforming dimensions:', e);
-      return { width: 1080, height: 1080 };
-    }
-  };
-
   const loadTemplates = () => {
-    // In a real app, this might be an API call
     const defaultTemplates: Template[] = [
       {
         id: "template-1",
@@ -201,7 +198,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     
     setTemplates(defaultTemplates);
     
-    // Store templates in Supabase for future use
     defaultTemplates.forEach(async (template) => {
       await supabase
         .from('templates')
@@ -223,7 +219,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
 
   const createContent = async (newContent: Partial<Content>): Promise<Content> => {
     try {
-      // Format for Supabase
       const supabaseContent = {
         title: newContent.title || "Untitled",
         generated_text: newContent.generatedText || "",
@@ -251,7 +246,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         throw error;
       }
       
-      // Transform to application format
       const contentItem: Content = {
         id: data.id,
         title: data.title,
@@ -264,7 +258,7 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         updatedAt: new Date(data.updated_at),
         scheduledFor: data.scheduled_for ? new Date(data.scheduled_for) : null,
         status: data.status as ContentStatus,
-        platforms: data.platforms ? data.platforms.map(p => p as any) : [],
+        platforms: data.platforms ? data.platforms.map(p => p as SocialPlatform) : [],
         user_id: data.user_id
       };
 
@@ -272,7 +266,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       return contentItem;
     } catch (error: any) {
       console.error('Failed to create content:', error);
-      // Create a fallback local content item in case of error
       const fallbackContent: Content = {
         id: `content-${Date.now()}`,
         title: newContent.title || "Untitled",
@@ -300,7 +293,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
 
   const updateContent = async (id: string, updatedFields: Partial<Content>): Promise<void> => {
     try {
-      // Format for Supabase
       const supabaseUpdate: Record<string, any> = {};
       
       if (updatedFields.title !== undefined) supabaseUpdate.title = updatedFields.title;
@@ -328,7 +320,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         });
       }
       
-      // Update local state
       setContent(prev => 
         prev.map(item => 
           item.id === id 
@@ -339,7 +330,6 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     } catch (error: any) {
       console.error('Unexpected error updating content:', error);
       
-      // Update local state anyway to maintain UI consistency
       setContent(prev => 
         prev.map(item => 
           item.id === id 
@@ -366,13 +356,10 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
         });
       }
       
-      // Update local state
       setContent(prev => prev.filter(item => item.id !== id));
       
-      // Also delete any scheduled posts for this content
       setScheduledPosts(prev => prev.filter(post => post.contentId !== id));
       
-      // Reset active content if deleted
       if (activeContent && activeContent.id === id) {
         setActiveContent(null);
       }
@@ -385,14 +372,13 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     const newScheduledPost: ScheduledPost = {
       id: `scheduled-${Date.now()}`,
       contentId,
-      platform: platform as any,
+      platform: platform as SocialPlatform,
       scheduledFor: date,
       status: "pending"
     };
 
     setScheduledPosts(prev => [...prev, newScheduledPost]);
     
-    // Update the content status
     updateContent(contentId, {
       status: "scheduled",
       scheduledFor: date

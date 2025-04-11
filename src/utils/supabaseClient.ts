@@ -149,7 +149,7 @@ export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> =>
     // Transform data to match the ChatMessage interface
     const messages: ChatMessage[] = data.map(item => ({
       id: item.id,
-      chat_id: item['chat-id'],
+      chat_id: item['chat-id'], // Map from database column to interface property
       role: item.role as 'user' | 'assistant',
       content: item.content,
       created_at: item.created_at
@@ -173,7 +173,7 @@ export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage
     
     // Transform to match the database column name
     const dbMessage = {
-      'chat-id': message.chat_id,
+      'chat-id': message.chat_id, // Map from interface property to database column
       content: message.content,
       role: message.role
     };
@@ -209,7 +209,7 @@ export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage
     // Transform response to match ChatMessage interface
     const savedMessage: ChatMessage = {
       id: data.id,
-      chat_id: data['chat-id'],
+      chat_id: data['chat-id'], // Map from database column to interface property
       role: data.role as 'user' | 'assistant',
       content: data.content,
       created_at: data.created_at

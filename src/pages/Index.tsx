@@ -19,24 +19,9 @@ import { useContent } from '@/contexts/ContentContext';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { content, scheduledPosts, setActiveContent, loadContent } = useContent();
+  const { content, scheduledPosts, setActiveContent } = useContent();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        await loadContent();
-      } catch (error) {
-        console.error("Error loading content:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [loadContent]);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Stats for dashboard
   const stats = {
@@ -143,7 +128,7 @@ const Index = () => {
                   {recentContent.map((item) => (
                     <div key={item.id} className="border-b pb-3 last:border-0">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-medium">{item.title || "Untitled"}</h3>
+                        <h3 className="font-medium truncate">{item.title || "Untitled"}</h3>
                         <Button 
                           variant="ghost" 
                           size="sm" 
