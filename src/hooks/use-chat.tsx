@@ -55,103 +55,130 @@ export function useChat() {
     }
   }, [provider, toast]);
 
-  // Load chat history
+  // Load chat history from Supabase
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        // Add debug information
-        console.log('Supabase client:', supabase);
-        console.log('Testing Supabase connection...');
-        
-        // Test if we can connect to Supabase
-        const { data: testData, error: testError } = await supabase
-          .from('chat_sessions')
-          .select('count')
-          .limit(1);
-          
-        console.log('Connection test result:', { testData, testError });
-        
+        console.log('Loading chat history from Supabase...');
         const history = await getChatHistory();
-        console.log('Loaded chat history:', history);
+        console.log(`Loaded ${history.length} chats from database`);
         setChatHistory(history);
         
         // Load the most recent chat if available
         if (history.length > 0 && !activeChatId) {
+          console.log(`Setting active chat to most recent: ${history[0].id}`);
           setActiveChatId(history[0].id);
           loadMessages(history[0].id);
         }
       } catch (error) {
-        console.error('Failed to load chat history', error);
+        console.error('Failed to load chat history from database', error);
+        toast({
+          title: 'Failed to Load Chat History',
+          description: 'Could not retrieve your chat history from the database.',
+          variant: 'destructive'
+        });
       }
     };
     
     loadHistory();
   }, []);
 
-  // Load messages for a chat
+  // Load messages for a chat from Supabase
   const loadMessages = async (chatId: string) => {
     try {
+      console.log(`Loading messages for chat ${chatId}...`);
       const messages = await getChatMessages(chatId);
+      console.log(`Loaded ${messages.length} messages for chat ${chatId}`);
       setCurrentMessages(messages);
     } catch (error) {
-      console.error('Failed to load chat messages', error);
+      console.error('Failed to load chat messages from database', error);
+      toast({
+        title: 'Failed to Load Messages',
+        description: 'Could not retrieve messages from the database.',
+        variant: 'destructive'
+      });
     }
   };
 
-  // Start a new chat
+  // Start a new chat in Supabase
   const handleNewChat = async () => {
     try {
+      console.log('Creating new chat in database...');
       const newChat = await createNewChat();
       if (newChat) {
+        console.log(`New chat created with ID: ${newChat.id}`);
         setChatHistory(prev => [newChat, ...prev]);
         setActiveChatId(newChat.id);
         setCurrentMessages([]);
+      } else {
+        console.error('Failed to create new chat - returned null');
       }
     } catch (error) {
-      console.error('Failed to create new chat', error);
+      console.error('Failed to create new chat in database', error);
+      toast({
+        title: 'Failed to Create New Chat',
+        description: 'Could not create a new chat in the database.',
+        variant: 'destructive'
+      });
     }
   };
 
   // Handle selecting a chat
   const handleSelectChat = (chatId: string) => {
+    console.log(`Selecting chat ${chatId}`);
     setActiveChatId(chatId);
     loadMessages(chatId);
   };
 
-  // Handle deleting a chat
+  // Handle deleting a chat from Supabase
   const handleDeleteChat = async (chatId: string) => {
-    const success = await deleteChat(chatId);
-    if (success) {
-      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-      if (activeChatId === chatId) {
-        setActiveChatId(null);
-        setCurrentMessages([]);
+    try {
+      console.log(`Deleting chat ${chatId} from database...`);
+      const success = await deleteChat(chatId);
+      if (success) {
+        console.log(`Successfully deleted chat ${chatId}`);
+        setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+        if (activeChatId === chatId) {
+          setActiveChatId(null);
+          setCurrentMessages([]);
+        }
+      } else {
+        console.error(`Failed to delete chat ${chatId}`);
       }
+    } catch (error) {
+      console.error('Failed to delete chat from database', error);
+      toast({
+        title: 'Failed to Delete Chat',
+        description: 'Could not delete the chat from the database.',
+        variant: 'destructive'
+      });
     }
   };
 
-  // Handle sending messages
+  // Handle sending messages and storing in Supabase
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
     
     setLoading(true);
     
     try {
+      // Create a new chat in database if needed
       if (!activeChatId) {
-        console.log('Creating new chat...');
+        console.log('No active chat, creating new chat in database...');
         const newChat = await createNewChat();
-        console.log('New chat created:', newChat);
         if (!newChat) {
+          console.error('Failed to create new chat - returned null');
           setLoading(false);
           return;
         }
+        console.log(`New chat created with ID: ${newChat.id}`);
         setActiveChatId(newChat.id);
         setChatHistory(prev => [newChat, ...prev]);
       }
 
       const chatId = activeChatId as string;
       
-      // Save user message
+      // Save user message to database
       const userMessage: ChatMessage = {
         chat_id: chatId,
         role: 'user',
@@ -162,11 +189,16 @@ export function useChat() {
       setCurrentMessages(prev => [...prev, userMessage]);
       
       // Save to database
-      console.log('Saving user message:', userMessage);
+      console.log('Saving user message to database:', userMessage);
       const savedMessage = await saveChatMessage(userMessage);
-      console.log('User message saved:', savedMessage);
+      if (!savedMessage) {
+        console.error('Failed to save user message to database');
+      } else {
+        console.log(`User message saved with ID: ${savedMessage.id}`);
+      }
       
       // Generate AI response
+      console.log(`Generating AI response using ${provider} model: ${selectedModel}`);
       const response = await generateContent({
         prompt: message,
         provider,
@@ -174,7 +206,7 @@ export function useChat() {
         tone: 'professional'
       });
       
-      // Save AI response
+      // Save AI response to database
       const assistantMessage: ChatMessage = {
         chat_id: chatId,
         role: 'assistant',
@@ -182,11 +214,15 @@ export function useChat() {
       };
       
       // Save to database
-      console.log('Saving assistant message:', assistantMessage);
+      console.log('Saving assistant message to database:', assistantMessage);
       const savedAssistantMessage = await saveChatMessage(assistantMessage);
-      console.log('Assistant message saved:', savedAssistantMessage);
+      if (!savedAssistantMessage) {
+        console.error('Failed to save assistant message to database');
+      } else {
+        console.log(`Assistant message saved with ID: ${savedAssistantMessage.id}`);
+      }
       
-      // Update UI
+      // Update UI with AI response
       setCurrentMessages(prev => [...prev, assistantMessage]);
       
       // Refresh history to update timestamps

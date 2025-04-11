@@ -158,12 +158,11 @@ const Settings = () => {
             <CardHeader>
               <CardTitle>Chat History</CardTitle>
               <CardDescription>
-                Configure your chat history storage settings
+                Your chat history is stored in the Supabase database
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="mb-4">Your AI chat history will be stored in your Supabase database.</p>
-              <Button variant="outline">Connect to Supabase</Button>
+              <p className="mb-4">Your AI chat history is automatically saved to the Supabase database.</p>
             </CardContent>
           </Card>
         </TabsContent>
