@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, PanelLeft, PanelLeftClose } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useContent } from '@/contexts/ContentContext';
 import { Content, SocialPlatform } from '@/types/content';
@@ -264,27 +265,17 @@ export const GenerateContentPage: React.FC = () => {
     <div className="ml-64 p-8 max-w-6xl">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Create Content</h1>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={() => setShowSidebar(!showSidebar)}
-        >
-          {showSidebar ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
-        </Button>
       </div>
       
       <div className="flex gap-6">
-        {showSidebar && (
-          <div className="w-64 border rounded-md p-4">
-            <h2 className="font-semibold mb-3">Saved Drafts</h2>
-            <SavedContentSidebar 
-              onSelectContent={handleSelectContent} 
-              activeContentId={currentContent?.id} 
-            />
-          </div>
-        )}
+        <SavedContentSidebar 
+          onSelectContent={handleSelectContent} 
+          activeContentId={currentContent?.id} 
+          isVisible={showSidebar}
+          onToggleVisibility={() => setShowSidebar(!showSidebar)}
+        />
         
-        <div className={`flex-1 ${showSidebar ? 'max-w-[calc(100%-280px)]' : 'w-full'}`}>
+        <div className={`flex-1 ${showSidebar ? 'max-w-[calc(100%-280px)]' : 'max-w-[calc(100%-60px)]'}`}>
           <StepTabs 
             activeTab={activeTab}
             setActiveTab={setActiveTab}
