@@ -1,5 +1,5 @@
 
-// This is a placeholder for the actual social media service integration
+// Social media service integration
 // In a real app, this would connect to social media APIs
 
 import { SocialPlatform } from "@/types/content";
@@ -17,6 +17,16 @@ interface PublishOptions {
   mediaUrl?: string;
   scheduledTime?: Date;
 }
+
+// Get API key for social platforms
+export const getSocialApiKey = (platform: SocialPlatform): string => {
+  const key = localStorage.getItem(`${platform}_api_key`);
+  return key || '';
+};
+
+export const saveSocialApiKey = (platform: SocialPlatform, apiKey: string): void => {
+  localStorage.setItem(`${platform}_api_key`, apiKey);
+};
 
 export const getConnectedAccounts = (): SocialAccount[] => {
   const savedAccounts = localStorage.getItem('socialAccounts');
@@ -52,7 +62,8 @@ export const getConnectedAccounts = (): SocialAccount[] => {
 
 export const connectAccount = (platform: SocialPlatform, apiKey: string): Promise<SocialAccount> => {
   // In a real app, this would authenticate with the platform's API
-  // For this demo, we'll simulate success
+  // For this demo, we'll simulate success but store the API key
+  saveSocialApiKey(platform, apiKey);
   
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -76,6 +87,9 @@ export const connectAccount = (platform: SocialPlatform, apiKey: string): Promis
 };
 
 export const disconnectAccount = (platform: SocialPlatform): Promise<void> => {
+  // Remove API key when disconnecting
+  localStorage.removeItem(`${platform}_api_key`);
+  
   return new Promise((resolve) => {
     setTimeout(() => {
       const accounts = getConnectedAccounts();
@@ -99,6 +113,15 @@ export const disconnectAccount = (platform: SocialPlatform): Promise<void> => {
 
 export const publishContent = async (options: PublishOptions): Promise<{ success: boolean; message: string }> => {
   const { platform, content, mediaUrl, scheduledTime } = options;
+  
+  // Check if we have an API key for this platform
+  const apiKey = getSocialApiKey(platform);
+  if (!apiKey) {
+    return {
+      success: false,
+      message: `API key for ${platform} is not set. Please connect your account first.`
+    };
+  }
   
   // In a real app, this would call the platform's API
   console.log(`Publishing to ${platform}:`, { content, mediaUrl, scheduledTime });

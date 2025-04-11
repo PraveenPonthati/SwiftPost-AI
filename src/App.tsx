@@ -10,6 +10,7 @@ import Generate from "./pages/Generate";
 import Templates from "./pages/Templates";
 import Calendar from "./pages/Calendar";
 import Settings from "./pages/Settings";
+import AIChat from "./pages/AIChat";
 import NotFound from "./pages/NotFound";
 import Navbar from "./components/layout/Navbar";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/templates" element={<Templates />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/ai-chat" element={<AIChat />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
