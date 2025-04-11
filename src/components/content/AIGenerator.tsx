@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -40,13 +39,10 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   });
 
   useEffect(() => {
-    // Update available models when provider changes
     const models = getAvailableModels(provider);
     setAvailableModels(models);
     
-    // Set default model for the selected provider
     if (models.length > 0) {
-      // Find the 2.0 Flash model if provider is gemini
       if (provider === 'gemini') {
         const flash = models.find(m => m.id === 'models/gemini-2.0-flash');
         setOptions(prev => ({ ...prev, provider, model: flash ? flash.id : models[0].id }));
@@ -57,7 +53,6 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       setOptions(prev => ({ ...prev, provider, model: 'default' }));
     }
     
-    // Check if API key exists - skip this check for mock provider
     if (provider !== 'mock') {
       const apiKey = getApiKey(provider);
       if (!apiKey) {
@@ -86,7 +81,6 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       const text = await generateContent(options);
       setGeneratedText(text);
       
-      // If auto-save is enabled, automatically pass the content to the parent component
       if (autoSave) {
         onContentGenerated(text, options.prompt);
         toast({
@@ -94,7 +88,6 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
           description: "Generated content has been automatically saved."
         });
       } else {
-        // Just notify that content was generated, but not saved
         toast({
           title: "Content Generated",
           description: "AI has successfully generated content. Click Save to use it."
@@ -126,7 +119,6 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     setLoading(true);
     setShowLoadingAnimation(true);
     try {
-      // Add a slight variation to the prompt to ensure different results
       const iterateOptions = {
         ...options,
         prompt: options.prompt + " (Alternative version)"
@@ -134,7 +126,6 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
       const text = await generateContent(iterateOptions);
       setGeneratedText(text);
       
-      // If auto-save is enabled, automatically pass the content to the parent component
       if (autoSave) {
         onContentGenerated(text, iterateOptions.prompt);
         toast({
@@ -335,13 +326,11 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
         </div>
         
         {showLoadingAnimation && loading && (
-          <div className="my-8 relative overflow-hidden h-24 rounded-md">
+          <div className="my-4 relative overflow-hidden h-2 rounded-full">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-gradient"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-background/80 backdrop-blur-sm p-4 rounded-md flex items-center gap-3">
-                <Loader2 size={24} className="animate-spin text-primary" />
-                <span className="font-medium">Creating amazing content...</span>
-              </div>
+            <div className="absolute top-3 left-1/2 transform -translate-x-1/2 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-md flex items-center gap-2 text-xs">
+              <Loader2 size={12} className="animate-spin text-primary" />
+              <span>Generating...</span>
             </div>
           </div>
         )}

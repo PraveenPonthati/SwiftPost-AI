@@ -1,4 +1,6 @@
 
-import GenerateContent from '@/components/content/GenerateContent';
+import { GenerateContentPage } from '@/components/content/GenerateContent/GenerateContentPage';
 
-export default GenerateContent;
+export default function Generate() {
+  return <GenerateContentPage />;
+}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, PanelLeft, PanelLeftClose } from 'lucide-react';
@@ -26,32 +25,6 @@ export const GenerateContentPage: React.FC = () => {
   const [publishing, setPublishing] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
 
-  useEffect(() => {
-    const initializeContent = async () => {
-      setIsLoading(true);
-      try {
-        // Create new content if none exists
-        if (!currentContent) {
-          const content = await createContent({
-            title: '',
-            generatedText: '',
-            editedText: '',
-            selectedTemplateId: null,
-            imageUrl: null,
-            platforms: []
-          });
-          setCurrentContent(content);
-        }
-      } catch (error) {
-        console.error("Error initializing content:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    initializeContent();
-  }, []);
-  
   const handleContentGenerated = async (text: string, prompt: string) => {
     try {
       setIsLoading(true);
@@ -101,7 +74,7 @@ export const GenerateContentPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleTemplateSelected = async (templateId: string) => {
     if (!currentContent) return;
     
@@ -129,7 +102,7 @@ export const GenerateContentPage: React.FC = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleTitleChange = async (title: string) => {
     if (!currentContent) return;
     
@@ -144,7 +117,7 @@ export const GenerateContentPage: React.FC = () => {
       console.error("Error saving title:", error);
     }
   };
-  
+
   const handleTextChange = async (editedText: string) => {
     if (!currentContent) return;
     
@@ -159,7 +132,7 @@ export const GenerateContentPage: React.FC = () => {
       console.error("Error saving edited text:", error);
     }
   };
-  
+
   const handlePlatformToggle = async (platform: SocialPlatform, isSelected: boolean) => {
     if (!currentContent) return;
     
@@ -178,7 +151,7 @@ export const GenerateContentPage: React.FC = () => {
       console.error("Error saving platforms:", error);
     }
   };
-  
+
   const handleSchedule = async () => {
     if (!currentContent || !scheduleDate) return;
     
@@ -235,7 +208,7 @@ export const GenerateContentPage: React.FC = () => {
       setActiveTab('generate');
     }
   };
-  
+
   const handleDeleteContent = async (id: string) => {
     try {
       await deleteContent(id);
@@ -267,7 +240,7 @@ export const GenerateContentPage: React.FC = () => {
       });
     }
   };
-  
+
   const isValid = () => {
     if (!currentContent) return false;
     
