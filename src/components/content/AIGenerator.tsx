@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Sparkles, Copy } from 'lucide-react';
-import { generateContent, GenerationOptions } from '@/utils/aiService';
+import { Loader2, Sparkles, Copy, Settings } from 'lucide-react';
+import { generateContent, GenerationOptions, getAvailableModels, AIModel, getApiKey } from '@/utils/aiService';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface AIGeneratorProps {
   onContentGenerated: (text: string) => void;
@@ -19,13 +25,38 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('openai');
+  const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [options, setOptions] = useState<GenerationOptions>({
     prompt: '',
     topic: '',
     tone: 'professional',
     length: 'medium',
-    includeHashtags: true
+    includeHashtags: true,
+    provider: 'openai',
+    model: 'gpt-4o-mini'
   });
+
+  useEffect(() => {
+    // Update available models when provider changes
+    const models = getAvailableModels(provider);
+    setAvailableModels(models);
+    
+    // Set default model for the selected provider
+    if (models.length > 0) {
+      setOptions(prev => ({ ...prev, provider, model: models[0].id }));
+    }
+    
+    // Check if API key exists
+    const apiKey = getApiKey(provider);
+    if (!apiKey && provider !== 'mock') {
+      toast({
+        title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
+        description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
+        variant: "destructive"
+      });
+    }
+  }, [provider, toast]);
 
   const handleGenerate = async () => {
     if (!options.prompt.trim()) {
@@ -46,11 +77,11 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
         title: "Content Generated",
         description: "AI has successfully generated content based on your prompt."
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating content:', error);
       toast({
         title: "Generation Failed",
-        description: "An error occurred while generating content. Please try again.",
+        description: error.message || "An error occurred while generating content. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -69,10 +100,31 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles size={18} className="text-brand-600" />
-          AI Content Generator
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles size={18} className="text-brand-600" />
+            AI Content Generator
+          </CardTitle>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Settings size={16} className="mr-2" />
+                AI Provider
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setProvider('openai')} className={provider === 'openai' ? 'bg-accent' : ''}>
+                OpenAI
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setProvider('gemini')} className={provider === 'gemini' ? 'bg-accent' : ''}>
+                Gemini
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setProvider('mock')} className={provider === 'mock' ? 'bg-accent' : ''}>
+                Demo Mode
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <CardDescription>
           Generate engaging social media content with AI
         </CardDescription>
@@ -137,16 +189,39 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
             </Select>
           </div>
           
-          <div className="flex items-center justify-between pt-8">
-            <Label htmlFor="hashtags">Include Hashtags</Label>
-            <Switch 
-              id="hashtags"
-              checked={options.includeHashtags}
-              onCheckedChange={(checked) => 
-                setOptions({...options, includeHashtags: checked})
-              }
-            />
+          <div className="space-y-2">
+            <Label htmlFor="model">AI Model</Label>
+            <Select 
+              value={options.model} 
+              onValueChange={(value) => setOptions({...options, model: value})}
+            >
+              <SelectTrigger id="model">
+                <SelectValue placeholder="Select AI model" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableModels.length > 0 ? (
+                  availableModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="default">Default Model</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
+        </div>
+        
+        <div className="flex items-center justify-between pt-2">
+          <Label htmlFor="hashtags">Include Hashtags</Label>
+          <Switch 
+            id="hashtags"
+            checked={options.includeHashtags}
+            onCheckedChange={(checked) => 
+              setOptions({...options, includeHashtags: checked})
+            }
+          />
         </div>
         
         {generatedText && (

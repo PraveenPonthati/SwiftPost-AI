@@ -128,9 +128,9 @@ const generateWithOpenAI = async (
     }
     
     return data.choices[0].message.content;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error calling OpenAI API:', error);
-    throw error;
+    throw new Error(`OpenAI API error: ${error.message}`);
   }
 };
 
@@ -187,9 +187,9 @@ const generateWithGemini = async (
     }
     
     return data.candidates[0].content.parts[0].text;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error calling Gemini API:', error);
-    throw error;
+    throw new Error(`Gemini API error: ${error.message}`);
   }
 };
 
