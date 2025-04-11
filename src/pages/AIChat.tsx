@@ -6,7 +6,7 @@ import ChatMessages from '@/components/chat/ChatMessages';
 import ChatInput from '@/components/chat/ChatInput';
 import { useChat } from '@/hooks/use-chat';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/utils/supabaseClient';
+import { supabase, testSupabaseConnection } from '@/utils/supabaseClient';
 
 const AIChat = () => {
   const {
@@ -29,21 +29,15 @@ const AIChat = () => {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        // Test if we can connect to Supabase
-        const { data, error } = await supabase
-          .from('chat_sessions')
-          .select('count')
-          .limit(1);
-          
-        if (error) {
-          console.error('Failed to connect to Supabase:', error);
+        // Test connection to Supabase
+        const isConnected = await testSupabaseConnection();
+        
+        if (isConnected) {
+          console.log('Connection to Supabase confirmed');
           toast({
-            title: 'Database Connection Error',
-            description: 'Could not connect to the database. Chat history may not be saved.',
-            variant: 'destructive',
+            title: 'Database Connection Established',
+            description: 'Successfully connected to Supabase database.',
           });
-        } else {
-          console.log('Successfully connected to Supabase database');
         }
       } catch (err) {
         console.error('Exception checking Supabase connection:', err);
