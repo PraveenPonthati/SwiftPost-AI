@@ -134,6 +134,11 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     
     // Also delete any scheduled posts for this content
     setScheduledPosts(prev => prev.filter(post => post.contentId !== id));
+    
+    // Reset active content if deleted
+    if (activeContent && activeContent.id === id) {
+      setActiveContent(null);
+    }
   };
 
   const schedulePost = (contentId: string, platform: string, date: Date) => {

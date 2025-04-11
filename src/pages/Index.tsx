@@ -1,21 +1,25 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, 
   MessageSquare, 
   Calendar as CalendarIcon,
   BarChart4,
-  Clock
+  Clock,
+  ArrowRight,
+  Pencil
 } from 'lucide-react';
 import { Content } from '@/types/content';
 import { useContent } from '@/contexts/ContentContext';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const { content, scheduledPosts } = useContent();
+  const { content, scheduledPosts, setActiveContent } = useContent();
+  const navigate = useNavigate();
   
   // Stats for dashboard
   const stats = {
@@ -37,6 +41,12 @@ const Index = () => {
       new Date(a.scheduledFor).getTime() - new Date(b.scheduledFor).getTime()
     )
     .slice(0, 3);
+
+  // Handle selecting content to edit
+  const handleEditContent = (item: Content) => {
+    setActiveContent(item);
+    navigate('/generate');
+  };
 
   return (
     <div className="flex flex-col w-full">
@@ -85,11 +95,17 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Recent Content */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare size={18} />
                 Recent Content
               </CardTitle>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/generate">
+                  View All
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
             </CardHeader>
             <CardContent>
               {recentContent.length === 0 ? (
@@ -100,7 +116,17 @@ const Index = () => {
                 <div className="space-y-4">
                   {recentContent.map((item) => (
                     <div key={item.id} className="border-b pb-3 last:border-0">
-                      <h3 className="font-medium">{item.title || "Untitled"}</h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-medium">{item.title || "Untitled"}</h3>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleEditContent(item)}
+                        >
+                          <Pencil size={14} />
+                          <span className="ml-1">Edit</span>
+                        </Button>
+                      </div>
                       <div className="flex justify-between text-sm text-muted-foreground mt-1">
                         <span>
                           {new Date(item.updatedAt).toLocaleDateString()}
