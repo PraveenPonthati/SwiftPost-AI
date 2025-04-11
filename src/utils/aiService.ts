@@ -2,6 +2,12 @@
 // AI service integration with OpenAI and Gemini
 import { toast } from "@/hooks/use-toast";
 
+export type AIModel = {
+  id: string;
+  name: string;
+  provider: 'openai' | 'gemini';
+}
+
 export interface GenerationOptions {
   prompt: string;
   topic?: string;
@@ -9,7 +15,32 @@ export interface GenerationOptions {
   length?: 'short' | 'medium' | 'long';
   includeHashtags?: boolean;
   provider?: 'openai' | 'gemini' | 'mock';
+  model?: string;
 }
+
+// Available models by provider
+const OPENAI_MODELS: AIModel[] = [
+  { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai' },
+  { id: 'gpt-4.5-preview', name: 'GPT-4.5 Preview', provider: 'openai' },
+];
+
+const GEMINI_MODELS: AIModel[] = [
+  { id: 'gemini-pro', name: 'Gemini Pro', provider: 'gemini' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
+];
+
+// Get available models for a provider
+export const getAvailableModels = (provider: 'openai' | 'gemini' | 'mock'): AIModel[] => {
+  switch (provider) {
+    case 'openai':
+      return OPENAI_MODELS;
+    case 'gemini':
+      return GEMINI_MODELS;
+    default:
+      return [];
+  }
+};
 
 // API key management
 export const getApiKey = (provider: 'openai' | 'gemini'): string => {
@@ -23,15 +54,23 @@ export const saveApiKey = (provider: 'openai' | 'gemini', apiKey: string): void 
 
 // Function to generate content using the selected provider
 export const generateContent = async (options: GenerationOptions): Promise<string> => {
-  const { prompt, provider = 'mock', topic = '', tone = 'professional', length = 'medium', includeHashtags = false } = options;
+  const { 
+    prompt, 
+    provider = 'mock', 
+    model = 'default',
+    topic = '', 
+    tone = 'professional', 
+    length = 'medium', 
+    includeHashtags = false 
+  } = options;
   
-  console.log('Generating content with options:', options);
+  console.log('Generating content with options:', { ...options, model });
   
   // Actual provider integrations
   if (provider === 'openai') {
-    return generateWithOpenAI(prompt, { topic, tone, length, includeHashtags });
+    return generateWithOpenAI(prompt, { topic, tone, length, includeHashtags, model });
   } else if (provider === 'gemini') {
-    return generateWithGemini(prompt, { topic, tone, length, includeHashtags });
+    return generateWithGemini(prompt, { topic, tone, length, includeHashtags, model });
   } else {
     // Fall back to mock for demo purposes
     return generateMockContent(prompt, { topic, tone, length, includeHashtags });
@@ -41,7 +80,7 @@ export const generateContent = async (options: GenerationOptions): Promise<strin
 // OpenAI integration
 const generateWithOpenAI = async (
   prompt: string, 
-  options: { topic: string; tone: string; length: string; includeHashtags: boolean }
+  options: { topic: string; tone: string; length: string; includeHashtags: boolean; model: string }
 ): Promise<string> => {
   const apiKey = getApiKey('openai');
   if (!apiKey) {
@@ -49,6 +88,13 @@ const generateWithOpenAI = async (
   }
 
   try {
+    // Use the selected model, or fall back to gpt-4o-mini if not specified
+    const selectedModel = options.model && options.model !== 'default' 
+      ? options.model 
+      : 'gpt-4o-mini';
+      
+    console.log(`Using OpenAI model: ${selectedModel}`);
+      
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -56,7 +102,7 @@ const generateWithOpenAI = async (
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: selectedModel,
         messages: [
           {
             role: 'system',
@@ -91,7 +137,7 @@ const generateWithOpenAI = async (
 // Gemini integration
 const generateWithGemini = async (
   prompt: string, 
-  options: { topic: string; tone: string; length: string; includeHashtags: boolean }
+  options: { topic: string; tone: string; length: string; includeHashtags: boolean; model: string }
 ): Promise<string> => {
   const apiKey = getApiKey('gemini');
   if (!apiKey) {
@@ -99,7 +145,14 @@ const generateWithGemini = async (
   }
 
   try {
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    // Use the selected model, or fall back to gemini-pro if not specified
+    const selectedModel = options.model && options.model !== 'default' 
+      ? options.model 
+      : 'gemini-pro';
+      
+    console.log(`Using Gemini model: ${selectedModel}`);
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -9,8 +9,23 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { generateContent, getApiKey } from '@/utils/aiService';
-import { SendHorizonal, Settings, Sparkles, User, Bot, Copy, Trash } from 'lucide-react';
+import { generateContent, getApiKey, getAvailableModels } from '@/utils/aiService';
+import { 
+  SendHorizonal, 
+  Settings, 
+  Sparkles, 
+  User, 
+  Bot, 
+  Copy, 
+  Trash,
+  ChevronDown
+} from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 type Message = {
   id: string;
@@ -32,12 +47,25 @@ const AIChat = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('mock');
+  const [model, setModel] = useState<string>('default');
   const [tone, setTone] = useState('professional');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Check if API keys are set
   const openaiKeyExists = !!getApiKey('openai');
   const geminiKeyExists = !!getApiKey('gemini');
+
+  // Get available models for the selected provider
+  const availableModels = getAvailableModels(provider);
+
+  // Set default model when provider changes
+  useEffect(() => {
+    if (availableModels.length > 0) {
+      setModel(availableModels[0].id);
+    } else {
+      setModel('default');
+    }
+  }, [provider]);
 
   useEffect(() => {
     scrollToBottom();
@@ -88,6 +116,7 @@ const AIChat = () => {
       const response = await generateContent({
         prompt: userMessage.content,
         provider,
+        model,
         tone,
       });
 
@@ -248,13 +277,41 @@ const AIChat = () => {
               </CardContent>
               <CardFooter>
                 <form onSubmit={handleSubmit} className="flex w-full space-x-2">
-                  <Input
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Type your message..."
-                    disabled={loading}
-                    className="flex-grow"
-                  />
+                  <div className="flex-grow flex items-center relative">
+                    <Input
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="Type your message..."
+                      disabled={loading}
+                      className="pr-24"
+                    />
+                    
+                    {/* Model selector dropdown inside prompt bar */}
+                    {provider !== 'mock' && (
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                              {availableModels.find(m => m.id === model)?.name || 'Select Model'}
+                              <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {availableModels.map((aiModel) => (
+                              <DropdownMenuItem 
+                                key={aiModel.id} 
+                                onClick={() => setModel(aiModel.id)}
+                                className="text-xs"
+                              >
+                                {aiModel.name}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                  
                   <Button type="submit" disabled={loading || !prompt.trim()}>
                     {loading ? (
                       <span className="flex items-center">
