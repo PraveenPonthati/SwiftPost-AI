@@ -88,11 +88,10 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
 
   return (
     <motion.div 
-      className="w-64 border rounded-md p-4"
+      className="w-64 border rounded-md p-4 overflow-hidden"
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
-      whileHover={{ scale: 1.01 }}
     >
       <motion.div 
         className="flex items-center justify-between mb-3 cursor-pointer"
@@ -125,29 +124,29 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
           </Button>
         </div>
       </motion.div>
-      <ScrollArea className="h-[calc(100vh-180px)] pr-4">
-        <div className="space-y-2">
+      <ScrollArea className="h-[calc(100vh-180px)] pr-2">
+        <div className="space-y-3">
           {sortedContent.map((item) => (
             <div
               key={item.id}
-              className={`p-3 rounded-lg border cursor-pointer group relative transition-colors ${
+              className={`p-3 rounded-xl border-2 cursor-pointer transition-colors ${
                 activeContentId === item.id
                   ? 'bg-primary/10 border-primary/20'
-                  : 'hover:bg-accent'
+                  : 'border-transparent hover:border-muted-foreground/20'
               }`}
               onClick={() => onSelectContent(item)}
             >
-              <div className="flex items-center justify-between w-full">
-                <div className="w-[calc(100%-40px)] pr-2">
-                  <p className="font-medium truncate">{item.title || 'Untitled Content'}</p>
+              <div className="flex items-center justify-between">
+                <div className="w-[calc(100%-44px)] overflow-hidden">
+                  <p className="font-medium text-sm truncate">{item.title || 'Untitled Content'}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {item.updatedAt ? format(new Date(item.updatedAt), 'PPP') : 'Unknown date'} · {item.status}
                   </p>
                 </div>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="h-8 w-8 p-0 flex-shrink-0 opacity-80 hover:opacity-100 hover:bg-accent/80"
+                  className="h-8 w-8 p-0 ml-2 flex-shrink-0 bg-transparent border border-muted-foreground/20 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteContent(item.id);
