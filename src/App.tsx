@@ -18,9 +18,9 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ContentProvider>
-        <BrowserRouter>
+    <ContentProvider>
+      <BrowserRouter>
+        <TooltipProvider>
           <Toaster />
           <Sonner />
           <Navbar />
@@ -33,9 +33,9 @@ const App = () => (
             <Route path="/ai-chat" element={<AIChat />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </ContentProvider>
-    </TooltipProvider>
+        </TooltipProvider>
+      </BrowserRouter>
+    </ContentProvider>
   </QueryClientProvider>
 );
 
