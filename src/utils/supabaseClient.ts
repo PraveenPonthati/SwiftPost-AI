@@ -2,11 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 // Types for chat messages and history
 export interface ChatMessage {
   id?: string;
-  chat_id: string; // Changed from chat-id to match the interface requirements
+  chat_id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at?: string;
@@ -268,7 +269,7 @@ export const deleteChat = async (chatId: string): Promise<boolean> => {
     const { error: messagesError } = await supabase
       .from('chat_messages')
       .delete()
-      .eq('chat_id', chatId);
+      .eq('chat-id', chatId);
 
     if (messagesError) {
       console.error('Error deleting chat messages:', messagesError);
