@@ -92,10 +92,12 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
+      whileHover={{ scale: 1.01 }}
     >
-      <div 
+      <motion.div 
         className="flex items-center justify-between mb-3 cursor-pointer"
         onClick={onToggleVisibility}
+        whileTap={{ scale: 0.98 }}
       >
         <h2 className="font-semibold">Saved Drafts</h2>
         <div className="flex space-x-2">
@@ -122,21 +124,21 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+      </motion.div>
       <ScrollArea className="h-[calc(100vh-180px)] pr-4">
         <div className="space-y-2">
           {sortedContent.map((item) => (
             <div
               key={item.id}
-              className={`p-3 rounded-lg border cursor-pointer group transition-colors ${
+              className={`p-3 rounded-lg border cursor-pointer group relative transition-colors ${
                 activeContentId === item.id
                   ? 'bg-primary/10 border-primary/20'
                   : 'hover:bg-accent'
               }`}
               onClick={() => onSelectContent(item)}
             >
-              <div className="flex items-center justify-between">
-                <div className="max-w-[75%]">
+              <div className="flex items-center justify-between w-full">
+                <div className="w-[calc(100%-40px)] pr-2">
                   <p className="font-medium truncate">{item.title || 'Untitled Content'}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {item.updatedAt ? format(new Date(item.updatedAt), 'PPP') : 'Unknown date'} · {item.status}
@@ -145,11 +147,12 @@ const SavedContentSidebar: React.FC<SavedContentSidebarProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 flex-shrink-0"
+                  className="h-8 w-8 p-0 flex-shrink-0 opacity-80 hover:opacity-100 hover:bg-accent/80"
                   onClick={(e) => {
                     e.stopPropagation();
                     deleteContent(item.id);
                   }}
+                  aria-label="Delete content"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
