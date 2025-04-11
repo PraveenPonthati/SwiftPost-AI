@@ -25,7 +25,7 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
-  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('openai');
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('gemini'); // Changed default to gemini
   const [availableModels, setAvailableModels] = useState<AIModel[]>([]);
   const [options, setOptions] = useState<GenerationOptions>({
     prompt: '',
@@ -33,8 +33,8 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     tone: 'professional',
     length: 'medium',
     includeHashtags: true,
-    provider: 'openai',
-    model: 'gpt-4o-mini'
+    provider: 'gemini', // Changed default to gemini
+    model: 'models/gemini-2.0-flash' // Set default to Gemini 2.0 Flash
   });
 
   useEffect(() => {
@@ -44,7 +44,13 @@ const AIGenerator: React.FC<AIGeneratorProps> = ({ onContentGenerated }) => {
     
     // Set default model for the selected provider
     if (models.length > 0) {
-      setOptions(prev => ({ ...prev, provider, model: models[0].id }));
+      // Find the 2.0 Flash model if provider is gemini
+      if (provider === 'gemini') {
+        const flash = models.find(m => m.id === 'models/gemini-2.0-flash');
+        setOptions(prev => ({ ...prev, provider, model: flash ? flash.id : models[0].id }));
+      } else {
+        setOptions(prev => ({ ...prev, provider, model: models[0].id }));
+      }
     } else {
       setOptions(prev => ({ ...prev, provider, model: 'default' }));
     }

@@ -43,8 +43,8 @@ const AIChat = () => {
   const [chatHistory, setChatHistory] = useState<ChatSession[]>([]);
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('openai');
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [provider, setProvider] = useState<'openai' | 'gemini' | 'mock'>('gemini'); // Changed default to gemini
+  const [selectedModel, setSelectedModel] = useState('models/gemini-2.0-flash'); // Set default to Gemini 2.0 Flash
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
   // Load available models when provider changes
@@ -52,9 +52,14 @@ const AIChat = () => {
     const models = getAvailableModels(provider);
     setAvailableModels(models.map(model => model.id));
     
-    // Select first model as default
+    // Select first model as default or Gemini 2.0 Flash if available
     if (models.length > 0) {
-      setSelectedModel(models[0].id);
+      if (provider === 'gemini') {
+        const flash = models.find(m => m.id === 'models/gemini-2.0-flash');
+        setSelectedModel(flash ? flash.id : models[0].id);
+      } else {
+        setSelectedModel(models[0].id);
+      }
     }
     
     // Check if API key exists
@@ -284,7 +289,9 @@ const AIChat = () => {
               </SelectTrigger>
               <SelectContent>
                 {availableModels.map(model => (
-                  <SelectItem key={model} value={model}>{model}</SelectItem>
+                  <SelectItem key={model} value={model}>
+                    {model.replace('models/', '')}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -26,8 +26,10 @@ const OPENAI_MODELS: AIModel[] = [
 ];
 
 const GEMINI_MODELS: AIModel[] = [
-  { id: 'gemini-pro', name: 'Gemini Pro', provider: 'gemini' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
+  { id: 'models/gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini' },
+  { id: 'models/gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini' },
+  { id: 'models/gemini-pro', name: 'Gemini Pro', provider: 'gemini' },
+  { id: 'models/gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini' }, // Added new Gemini 2.0 Flash
 ];
 
 // Get available models for a provider
@@ -150,14 +152,18 @@ const generateWithGemini = async (
   }
 
   try {
-    // Use the selected model, or fall back to gemini-pro if not specified
+    // Use the selected model, or fall back to gemini-2.0-flash if not specified
     const selectedModel = options.model && options.model !== 'default' 
       ? options.model 
-      : 'gemini-pro';
+      : 'models/gemini-2.0-flash'; // Using the newer model as default
       
     console.log(`Using Gemini model: ${selectedModel}`);
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent`, {
+    // Extract the model name from the full path for the API URL
+    const modelName = selectedModel.replace('models/', '');
+    
+    // Use the generative language API v1 (not v1beta)
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/${selectedModel}:generateContent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -180,7 +186,10 @@ const generateWithGemini = async (
           }
         ],
         generationConfig: {
-          maxOutputTokens: options.length === 'short' ? 100 : options.length === 'medium' ? 200 : 400
+          maxOutputTokens: options.length === 'short' ? 100 : options.length === 'medium' ? 200 : 400,
+          temperature: 0.7,
+          topP: 1.0,
+          topK: 40
         }
       })
     });
@@ -191,7 +200,16 @@ const generateWithGemini = async (
       throw new Error(data.error.message || 'Gemini API Error');
     }
     
-    return data.candidates[0].content.parts[0].text;
+    // Make sure to access the correct path in the response
+    if (data.candidates && data.candidates.length > 0 && 
+        data.candidates[0].content && 
+        data.candidates[0].content.parts && 
+        data.candidates[0].content.parts.length > 0) {
+      return data.candidates[0].content.parts[0].text;
+    } else {
+      console.error('Unexpected Gemini API response structure:', data);
+      throw new Error('Unexpected response from Gemini API');
+    }
   } catch (error: any) {
     console.error('Error calling Gemini API:', error);
     throw new Error(`Gemini API error: ${error.message}`);
