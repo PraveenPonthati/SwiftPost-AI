@@ -1,1 +1,5 @@
+
 project_id = "hnnzwjwezfdyqqarfigv"
+
+[functions.twitter-post]
+verify_jwt = true
