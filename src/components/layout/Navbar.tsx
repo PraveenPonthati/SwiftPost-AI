@@ -29,15 +29,15 @@ const Navbar = () => {
 
   const userInitials = user?.email 
     ? user.email.split('@')[0].substring(0, 2).toUpperCase()
-    : 'SS';
+    : 'SP';
 
   return (
     <nav className="fixed left-0 top-0 h-screen w-64 bg-sidebar p-4 border-r border-border flex flex-col">
       <div className="flex items-center gap-2 mb-8 px-2">
         <div className="w-8 h-8 bg-brand-600 rounded-md flex items-center justify-center">
-          <span className="text-white font-bold">SS</span>
+          <span className="text-white font-bold">SP</span>
         </div>
-        <h1 className="text-xl font-bold">Social Scribe</h1>
+        <h1 className="text-xl font-bold">SwiftPost AI</h1>
       </div>
       
       <div className="space-y-1">
