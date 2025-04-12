@@ -3,6 +3,7 @@
 // In a real app, this would connect to social media APIs
 
 import { SocialPlatform } from "@/types/content";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SocialAccount {
   platform: SocialPlatform;
@@ -50,7 +51,7 @@ export const getConnectedAccounts = (): SocialAccount[] => {
     {
       platform: 'twitter',
       username: '',
-      connected: false,
+      connected: true, // Set Twitter as connected by default for this demo
     },
     {
       platform: 'linkedin',
@@ -114,9 +115,49 @@ export const disconnectAccount = (platform: SocialPlatform): Promise<void> => {
 export const publishContent = async (options: PublishOptions): Promise<{ success: boolean; message: string }> => {
   const { platform, content, mediaUrl, scheduledTime } = options;
   
+  // Twitter-specific handling using Edge Function
+  if (platform === 'twitter') {
+    try {
+      console.log("Publishing to Twitter:", content);
+      
+      const { data, error } = await supabase.functions.invoke('twitter-post', {
+        body: { text: content }
+      });
+      
+      if (error) {
+        console.error("Twitter posting error:", error);
+        return {
+          success: false,
+          message: `Failed to post to Twitter: ${error.message}`
+        };
+      }
+      
+      console.log("Twitter API response:", data);
+      
+      if (data.success) {
+        return {
+          success: true,
+          message: `Content published to Twitter successfully`
+        };
+      } else {
+        return {
+          success: false,
+          message: `Failed to post to Twitter: ${data.error || 'Unknown error'}`
+        };
+      }
+    } catch (error: any) {
+      console.error("Twitter API error:", error);
+      return {
+        success: false,
+        message: `Error posting to Twitter: ${error.message}`
+      };
+    }
+  }
+  
+  // For other platforms, use the mock implementation
   // Check if we have an API key for this platform
   const apiKey = getSocialApiKey(platform);
-  if (!apiKey) {
+  if (!apiKey && platform !== 'twitter') { 
     return {
       success: false,
       message: `API key for ${platform} is not set. Please connect your account first.`
