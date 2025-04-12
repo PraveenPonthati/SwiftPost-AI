@@ -5,24 +5,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContent } from '@/contexts/ContentContext';
 import { SocialPlatform, Content } from '@/types/content';
 import { Button } from '@/components/ui/button';
-import { Facebook, Instagram, Linkedin, Twitter, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Twitter, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import CanvaIntegration from '@/components/templates/CanvaIntegration';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/utils/socialService';
 import ContentDraftsList from '@/components/templates/ContentDraftsList';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
+const TEMPLATE_COLORS = [
+  { name: 'Blue', value: '#3B82F6' },
+  { name: 'Green', value: '#10B981' },
+  { name: 'Purple', value: '#8B5CF6' },
+  { name: 'Pink', value: '#EC4899' },
+  { name: 'Orange', value: '#F59E0B' },
+];
 
 const Templates = () => {
   const { templates, content } = useContent();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<SocialPlatform | 'all'>('all');
-  const [showDrafts, setShowDrafts] = useState<boolean>(true); // Default to showing drafts
+  const [showDrafts, setShowDrafts] = useState<boolean>(true);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [draggedContent, setDraggedContent] = useState<Content | null>(null);
   const [isPublishDialogOpen, setIsPublishDialogOpen] = useState<boolean>(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<SocialPlatform[]>([]);
   const [publishing, setPublishing] = useState<boolean>(false);
-  const [loadingTemplates, setLoadingTemplates] = useState<boolean>(false);
+  const [selectedColor, setSelectedColor] = useState<string>(TEMPLATE_COLORS[0].value);
   const { toast } = useToast();
   
   // Filter templates based on selected filters
@@ -44,9 +52,7 @@ const Templates = () => {
 
   const handleDrop = (templateId: string) => {
     if (!draggedContent) return;
-    
     setSelectedTemplate(templateId);
-    // Keep the publish dialog closed until user explicitly requests to publish
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -88,7 +94,7 @@ const Templates = () => {
           description: `Your post has been published to ${selectedPlatforms.length} platform(s).`
         });
         setIsPublishDialogOpen(false);
-        clearSelectedTemplate(); // Clear the draft after successful publishing
+        clearSelectedTemplate();
       } else {
         const failedPlatforms = results
           .filter(r => !r.success)
@@ -146,7 +152,11 @@ const Templates = () => {
           >
             {showDrafts ? "Hide Drafts" : "Show Drafts"}
           </Button>
-          <CanvaIntegration />
+          {draggedContent && selectedTemplate && (
+            <Button onClick={openPublishDialog}>
+              Publish Content
+            </Button>
+          )}
         </div>
       </div>
       
@@ -178,85 +188,118 @@ const Templates = () => {
               </TabsList>
             </Tabs>
           </div>
-          
-          {loadingTemplates ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="flex flex-col items-center">
-                <Loader2 className="w-8 h-8 animate-spin text-brand-600 mb-4" />
-                <p>Loading templates from Canva...</p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredTemplates.map(template => (
-                <div 
-                  key={template.id} 
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(template.id)}
-                >
-                  <Card 
-                    className={`overflow-hidden card-hover ${selectedTemplate === template.id ? "ring-2 ring-brand-600" : ""}`}
+
+          <div className="mb-6">
+            <h2 className="text-lg font-medium mb-3">Template Color</h2>
+            <RadioGroup 
+              value={selectedColor}
+              onValueChange={setSelectedColor}
+              className="flex gap-3"
+            >
+              {TEMPLATE_COLORS.map(color => (
+                <div key={color.value} className="flex items-center">
+                  <RadioGroupItem 
+                    value={color.value} 
+                    id={`color-${color.name}`} 
+                    className="peer sr-only" 
+                  />
+                  <label
+                    htmlFor={`color-${color.name}`}
+                    className="flex items-center justify-center rounded-full w-10 h-10 cursor-pointer ring-offset-2 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-background peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-brand-600"
+                    style={{ backgroundColor: color.value }}
                   >
-                    <div className="aspect-square overflow-hidden relative">
-                      <img 
-                        src={template.previewImage} 
-                        alt={template.name} 
-                        className="w-full h-full object-cover"
-                      />
-                      {draggedContent && selectedTemplate === template.id && (
-                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
-                          <p className="text-sm font-medium mb-2 text-center truncate max-w-full">
-                            {draggedContent.title}
-                          </p>
-                          <p className="text-xs text-center line-clamp-3">
-                            {(draggedContent.editedText || draggedContent.generatedText).substring(0, 100)}...
-                          </p>
-                          <div className="flex gap-2 mt-4">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              className="bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
-                              onClick={clearSelectedTemplate}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              onClick={openPublishDialog}
-                            >
-                              Publish
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium">{template.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {template.dimensions.width} x {template.dimensions.height}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {template.platforms.map(platform => (
-                          <div 
-                            key={platform}
-                            className="text-xs px-2 py-0.5 bg-muted rounded-full"
-                          >
-                            {platform}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
+                    {selectedColor === color.value && (
+                      <CheckCircle2 className="h-5 w-5 text-white" />
+                    )}
+                  </label>
                 </div>
               ))}
-            </div>
-          )}
+            </RadioGroup>
+          </div>
           
-          {filteredTemplates.length === 0 && !loadingTemplates && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredTemplates.map(template => (
+              <div 
+                key={template.id} 
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(template.id)}
+              >
+                <Card 
+                  className={`overflow-hidden card-hover ${selectedTemplate === template.id ? "ring-2 ring-brand-600" : ""}`}
+                >
+                  <div className="aspect-square overflow-hidden relative">
+                    <div 
+                      className="w-full h-full"
+                      style={{ backgroundColor: selectedColor }}
+                    >
+                      {template.platforms.map((platform, index) => (
+                        <div 
+                          key={platform}
+                          className="absolute text-white text-opacity-20"
+                          style={{
+                            top: 10 + (index * 25) + '%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            fontSize: '4rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {platform === 'instagram' && <Instagram className="w-16 h-16 opacity-25" />}
+                          {platform === 'facebook' && <Facebook className="w-16 h-16 opacity-25" />}
+                          {platform === 'twitter' && <Twitter className="w-16 h-16 opacity-25" />}
+                          {platform === 'linkedin' && <Linkedin className="w-16 h-16 opacity-25" />}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {draggedContent && selectedTemplate === template.id && (
+                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
+                        <p className="text-sm font-medium mb-2 text-center truncate max-w-full">
+                          {draggedContent.title}
+                        </p>
+                        <p className="text-xs text-center line-clamp-3">
+                          {(draggedContent.editedText || draggedContent.generatedText).substring(0, 100)}...
+                        </p>
+                        <div className="flex gap-2 mt-4">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+                            onClick={clearSelectedTemplate}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-medium">{template.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {template.dimensions.width} x {template.dimensions.height}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {template.platforms.map(platform => (
+                        <div 
+                          key={platform}
+                          className="text-xs px-2 py-0.5 bg-muted rounded-full"
+                        >
+                          {platform}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+          
+          {filteredTemplates.length === 0 && (
             <div className="text-center py-12">
               <h2 className="text-xl font-medium">No templates found</h2>
               <p className="text-muted-foreground mt-2">
-                Try adjusting your filters to see more templates or connect to Canva to import templates.
+                Try adjusting your filters to see more templates.
               </p>
             </div>
           )}
