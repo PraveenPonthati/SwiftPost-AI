@@ -24,10 +24,18 @@ const Settings = () => {
       loadApiKeysFromDatabase();
     } else {
       // If not logged in, fallback to localStorage
-      const openaiKeyLocal = getApiKey('openai') || '';
-      const geminiKeyLocal = getApiKey('gemini') || '';
-      setOpenaiKey(openaiKeyLocal);
-      setGeminiKey(geminiKeyLocal);
+      const loadLocalKeys = async () => {
+        try {
+          const openaiKeyLocal = await getApiKey('openai');
+          const geminiKeyLocal = await getApiKey('gemini');
+          setOpenaiKey(openaiKeyLocal || '');
+          setGeminiKey(geminiKeyLocal || '');
+        } catch (error) {
+          console.error('Error loading API keys from localStorage:', error);
+        }
+      };
+      
+      loadLocalKeys();
     }
   }, [user]);
 

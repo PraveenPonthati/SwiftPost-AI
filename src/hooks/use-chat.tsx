@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -45,14 +46,18 @@ export function useChat() {
     
     // Check if API key exists
     if (provider !== 'mock') {
-      const apiKey = getApiKey(provider);
-      if (!apiKey) {
-        toast({
-          title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
-          description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
-          variant: "destructive"
-        });
-      }
+      const checkApiKey = async () => {
+        const apiKey = await getApiKey(provider);
+        if (!apiKey) {
+          toast({
+            title: `No ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key`,
+            description: `Please add your API key in Settings to use ${provider === 'openai' ? 'OpenAI' : 'Gemini'} models.`,
+            variant: "destructive"
+          });
+        }
+      };
+      
+      checkApiKey();
     }
   }, [provider, toast]);
 
