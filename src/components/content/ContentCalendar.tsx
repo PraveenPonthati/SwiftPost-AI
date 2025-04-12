@@ -12,12 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SocialPlatform } from '@/types/content';
-import { 
-  Instagram, 
-  Facebook, 
-  Twitter, 
-  Linkedin 
-} from 'lucide-react';
+import { Twitter } from 'lucide-react';
 
 const ContentCalendar: React.FC = () => {
   const { scheduledPosts, content } = useContent();
@@ -25,16 +20,7 @@ const ContentCalendar: React.FC = () => {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   
   const getPlatformIcon = (platform: SocialPlatform) => {
-    switch (platform) {
-      case 'instagram':
-        return <Instagram size={16} />;
-      case 'facebook':
-        return <Facebook size={16} />;
-      case 'twitter':
-        return <Twitter size={16} />;
-      case 'linkedin':
-        return <Linkedin size={16} />;
-    }
+    return <Twitter size={16} />;
   };
 
   // Filter posts based on selected platform
@@ -93,10 +79,7 @@ const ContentCalendar: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Platforms</SelectItem>
-                <SelectItem value="instagram">Instagram</SelectItem>
-                <SelectItem value="facebook">Facebook</SelectItem>
-                <SelectItem value="twitter">Twitter</SelectItem>
-                <SelectItem value="linkedin">LinkedIn</SelectItem>
+                <SelectItem value="twitter">Twitter/X</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -87,6 +87,7 @@ function generateOAuthHeader(method: string, url: string): string {
 }
 
 async function sendTweet(tweetText: string): Promise<any> {
+  // Use the v2 Twitter API
   const url = "https://api.twitter.com/2/tweets";
   const method = "POST";
 
@@ -112,7 +113,11 @@ async function sendTweet(tweetText: string): Promise<any> {
     );
   }
 
-  return JSON.parse(responseText);
+  try {
+    return JSON.parse(responseText);
+  } catch (e) {
+    return { raw: responseText };
+  }
 }
 
 Deno.serve(async (req) => {
