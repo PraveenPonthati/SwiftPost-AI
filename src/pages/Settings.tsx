@@ -9,32 +9,109 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getApiKey, saveApiKey } from '@/utils/aiService';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Settings = () => {
   const [openaiKey, setOpenaiKey] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
+  const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Load API keys from localStorage when component mounts
-    setOpenaiKey(getApiKey('openai') || '');
-    setGeminiKey(getApiKey('gemini') || '');
-  }, []);
+    if (user) {
+      loadApiKeysFromDatabase();
+    } else {
+      // If not logged in, fallback to localStorage
+      setOpenaiKey(getApiKey('openai') || '');
+      setGeminiKey(getApiKey('gemini') || '');
+    }
+  }, [user]);
+
+  const loadApiKeysFromDatabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .select('provider, api_key')
+        .eq('user_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        data.forEach(item => {
+          if (item.provider === 'openai') {
+            setOpenaiKey(item.api_key);
+            // Also update localStorage for compatibility
+            saveApiKey('openai', item.api_key);
+          } else if (item.provider === 'gemini') {
+            setGeminiKey(item.api_key);
+            // Also update localStorage for compatibility
+            saveApiKey('gemini', item.api_key);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error loading API keys:', error);
+      toast({
+        title: "Failed to load API keys",
+        description: "There was an error retrieving your saved API keys",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveApiKeyToDatabase = async (provider: string, apiKey: string) => {
+    if (!user) return;
+
+    setIsSaving(prev => ({ ...prev, [provider]: true }));
+    
+    try {
+      // Save to localStorage for compatibility with existing code
+      saveApiKey(provider, apiKey.trim());
+      
+      // Also save to database for persistence
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .upsert(
+          {
+            user_id: user.id,
+            provider,
+            api_key: apiKey.trim()
+          },
+          {
+            onConflict: 'user_id,provider'
+          }
+        );
+
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: `${provider === 'openai' ? 'OpenAI' : 'Gemini'} API Key Saved`,
+        description: `Your ${provider === 'openai' ? 'OpenAI' : 'Gemini'} API key has been saved successfully.`,
+      });
+    } catch (error: any) {
+      console.error(`Error saving ${provider} API key:`, error);
+      toast({
+        title: `Failed to Save API Key`,
+        description: error.message || "An error occurred while saving your API key",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(prev => ({ ...prev, [provider]: false }));
+    }
+  };
 
   const handleSaveOpenAI = () => {
-    saveApiKey('openai', openaiKey.trim());
-    toast({
-      title: "OpenAI API Key Saved",
-      description: "Your OpenAI API key has been saved successfully.",
-    });
+    saveApiKeyToDatabase('openai', openaiKey);
   };
 
   const handleSaveGemini = () => {
-    saveApiKey('gemini', geminiKey.trim());
-    toast({
-      title: "Gemini API Key Saved",
-      description: "Your Gemini API key has been saved successfully.",
-    });
+    saveApiKeyToDatabase('gemini', geminiKey);
   };
 
   return (
@@ -106,7 +183,9 @@ const Settings = () => {
               <Alert variant="default" className="bg-blue-50 border-blue-200 mb-4">
                 <InfoIcon className="h-4 w-4 text-blue-500 mr-2" />
                 <AlertDescription className="text-blue-800">
-                  Your API keys are stored securely in your browser's local storage and are never sent to our servers.
+                  {user 
+                    ? "Your API keys are securely stored in your account and synchronized across devices." 
+                    : "Your API keys are stored securely in your browser's local storage and are never sent to our servers."}
                 </AlertDescription>
               </Alert>
               
@@ -123,7 +202,15 @@ const Settings = () => {
                       placeholder="sk-..." 
                       className="flex-1"
                     />
-                    <Button onClick={handleSaveOpenAI}>Save</Button>
+                    <Button 
+                      onClick={handleSaveOpenAI}
+                      disabled={isSaving.openai}
+                    >
+                      {isSaving.openai ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Save
+                    </Button>
                   </div>
                   <p className="text-sm text-gray-500">
                     Get your API key from the <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">OpenAI dashboard</a>. Recommended models: GPT-4o Mini, GPT-4o.
@@ -144,7 +231,15 @@ const Settings = () => {
                       placeholder="AIza..." 
                       className="flex-1"
                     />
-                    <Button onClick={handleSaveGemini}>Save</Button>
+                    <Button 
+                      onClick={handleSaveGemini}
+                      disabled={isSaving.gemini}
+                    >
+                      {isSaving.gemini ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      Save
+                    </Button>
                   </div>
                   <p className="text-sm text-gray-500">
                     Get your API key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Google AI Studio</a>. Recommended models: Gemini Pro, Gemini 1.5 Pro.
@@ -176,9 +271,30 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center py-8 text-muted-foreground">
-                Account settings will be available in a future update.
-              </p>
+              {user ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
+                    <div className="p-2 bg-muted rounded border">{user.email}</div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Account ID</Label>
+                    <div className="p-2 bg-muted rounded border font-mono text-xs">{user.id}</div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Last Sign In</Label>
+                    <div className="p-2 bg-muted rounded border">
+                      {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">
+                  Please sign in to view account details.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

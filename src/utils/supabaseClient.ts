@@ -75,9 +75,14 @@ export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<
   try {
     console.log('Creating new chat with title:', initialTitle);
     
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
     const newChat = {
       title: initialTitle,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      user_id: userId // Associate chat with user if logged in
     };
 
     const { data, error } = await supabase
@@ -112,10 +117,19 @@ export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<
 export const getChatHistory = async (): Promise<ChatSession[]> => {
   try {
     console.log('Fetching chat history...');
+    
+    // Get current user
+    const { data: { session } } = await supabase.auth.getSession();
+    
     let query = supabase
       .from('chat_sessions')
       .select('*')
       .order('updated_at', { ascending: false });
+    
+    // Filter by user_id if user is logged in
+    if (session?.user) {
+      query = query.eq('user_id', session.user.id);
+    }
     
     const { data, error } = await query;
 

@@ -1,6 +1,6 @@
 
-// AI service integration with OpenAI and Gemini
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AIModel = {
   id: string;
@@ -45,18 +45,58 @@ export const getAvailableModels = (provider: 'openai' | 'gemini' | 'mock'): AIMo
 };
 
 // API key management
-export const getApiKey = (provider: 'openai' | 'gemini' | 'mock'): string => {
+export const getApiKey = async (provider: 'openai' | 'gemini' | 'mock'): Promise<string> => {
   // For mock provider, no API key is needed
   if (provider === 'mock') {
     return 'mock-key';
   }
   
+  try {
+    // First check if we are authenticated and can get the API key from the database
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      const { data, error } = await supabase
+        .from('user_api_keys')
+        .select('api_key')
+        .eq('user_id', session.user.id)
+        .eq('provider', provider)
+        .single();
+      
+      if (data && !error) {
+        return data.api_key;
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching API key from database:', error);
+    // Fall back to localStorage
+  }
+  
+  // Fall back to localStorage if not authenticated or if there was an error
   const key = localStorage.getItem(`${provider}_api_key`);
   return key || '';
 };
 
 export const saveApiKey = (provider: 'openai' | 'gemini', apiKey: string): void => {
   localStorage.setItem(`${provider}_api_key`, apiKey);
+  
+  // If we're authenticated, also save to the database
+  const saveToDb = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      await supabase.from('user_api_keys').upsert({
+        user_id: session.user.id,
+        provider,
+        api_key: apiKey
+      }, { onConflict: 'user_id,provider' });
+    }
+  };
+  
+  // Try to save to database but don't block
+  saveToDb().catch(error => {
+    console.error(`Error saving ${provider} API key to database:`, error);
+  });
 };
 
 // Function to generate content using the selected provider
@@ -89,7 +129,7 @@ const generateWithOpenAI = async (
   prompt: string, 
   options: { topic: string; tone: string; length: string; includeHashtags: boolean; model: string }
 ): Promise<string> => {
-  const apiKey = getApiKey('openai');
+  const apiKey = await getApiKey('openai');
   if (!apiKey) {
     throw new Error('OpenAI API key not found. Please add your API key in Settings.');
   }
@@ -146,7 +186,7 @@ const generateWithGemini = async (
   prompt: string, 
   options: { topic: string; tone: string; length: string; includeHashtags: boolean; model: string }
 ): Promise<string> => {
-  const apiKey = getApiKey('gemini');
+  const apiKey = await getApiKey('gemini');
   if (!apiKey) {
     throw new Error('Gemini API key not found. Please add your API key in Settings.');
   }
