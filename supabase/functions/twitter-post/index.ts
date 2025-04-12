@@ -7,17 +7,17 @@ const corsHeaders = {
 };
 
 // Twitter API credentials stored as secrets in Supabase
-const API_KEY = Deno.env.get("TWITTER_CONSUMER_KEY")?.trim();
-const API_SECRET = Deno.env.get("TWITTER_CONSUMER_SECRET")?.trim();
+const API_KEY = Deno.env.get("TWITTER_CONSUMER_KEY")?.trim() || Deno.env.get("TWITTER_CLIENT_ID")?.trim();
+const API_SECRET = Deno.env.get("TWITTER_CONSUMER_SECRET")?.trim() || Deno.env.get("TWITTER_CLIENT_SECRET")?.trim();
 const ACCESS_TOKEN = Deno.env.get("TWITTER_ACCESS_TOKEN")?.trim();
 const ACCESS_TOKEN_SECRET = Deno.env.get("TWITTER_ACCESS_TOKEN_SECRET")?.trim();
 
 function validateEnvironmentVariables() {
   if (!API_KEY) {
-    throw new Error("Missing TWITTER_CONSUMER_KEY environment variable");
+    throw new Error("Missing TWITTER_CONSUMER_KEY or TWITTER_CLIENT_ID environment variable");
   }
   if (!API_SECRET) {
-    throw new Error("Missing TWITTER_CONSUMER_SECRET environment variable");
+    throw new Error("Missing TWITTER_CONSUMER_SECRET or TWITTER_CLIENT_SECRET environment variable");
   }
   if (!ACCESS_TOKEN) {
     throw new Error("Missing TWITTER_ACCESS_TOKEN environment variable");
@@ -93,6 +93,7 @@ async function sendTweet(tweetText: string): Promise<any> {
 
   const oauthHeader = generateOAuthHeader(method, url);
   console.log("OAuth Header:", oauthHeader);
+  console.log("Tweet Text:", tweetText);
 
   const response = await fetch(url, {
     method: method,

@@ -103,10 +103,14 @@ export const publishContent = async (options: PublishOptions): Promise<{ success
   // Only handle Twitter platform
   if (platform === 'twitter') {
     try {
+      console.log("Attempting to post to Twitter:", content);
       // Call the Supabase Edge Function for Twitter posting
       const { data, error } = await supabase.functions.invoke('twitter-post', {
         body: { text: content }
       });
+      
+      console.log("Twitter response data:", data);
+      console.log("Twitter response error:", error);
       
       if (error) {
         console.error('Error calling Twitter post function:', error);
@@ -117,6 +121,7 @@ export const publishContent = async (options: PublishOptions): Promise<{ success
       }
       
       if (data && data.success === false) {
+        console.error('Twitter post returned error:', data.error);
         return {
           success: false,
           message: `Failed to post to Twitter: ${data.error || 'Unknown error'}`
