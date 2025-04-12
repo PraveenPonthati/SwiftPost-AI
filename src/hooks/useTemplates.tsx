@@ -11,7 +11,7 @@ export const useTemplates = () => {
       {
         id: "template-1",
         name: "Instagram Square",
-        previewImage: "https://via.placeholder.com/600x600",
+        previewImage: "https://via.placeholder.com/600x600/FF5733/FFFFFF?text=Instagram+Square",
         dimensions: { width: 1080, height: 1080 },
         category: "post",
         platforms: ["instagram", "facebook"]
@@ -19,7 +19,7 @@ export const useTemplates = () => {
       {
         id: "template-2",
         name: "Instagram Story",
-        previewImage: "https://via.placeholder.com/1080x1920",
+        previewImage: "https://via.placeholder.com/1080x1920/3358FF/FFFFFF?text=Instagram+Story",
         dimensions: { width: 1080, height: 1920 },
         category: "story",
         platforms: ["instagram"]
@@ -27,7 +27,7 @@ export const useTemplates = () => {
       {
         id: "template-3",
         name: "Twitter Post",
-        previewImage: "https://via.placeholder.com/1200x675",
+        previewImage: "https://via.placeholder.com/1200x675/33FF57/FFFFFF?text=Twitter+Post",
         dimensions: { width: 1200, height: 675 },
         category: "post",
         platforms: ["twitter"]
@@ -35,7 +35,7 @@ export const useTemplates = () => {
       {
         id: "template-4",
         name: "LinkedIn Article",
-        previewImage: "https://via.placeholder.com/1200x627",
+        previewImage: "https://via.placeholder.com/1200x627/FF33A8/FFFFFF?text=LinkedIn+Article",
         dimensions: { width: 1200, height: 627 },
         category: "post",
         platforms: ["linkedin"]

@@ -25,6 +25,7 @@ interface ContentContextType {
   schedulePost: (contentId: string, platform: string, date: Date) => void;
   loadTemplates: () => void;
   loadContent: () => Promise<void>;
+  loadTemplatesFromCanva: (clientId: string, clientSecret: string) => Promise<void>;
 }
 
 const ContentContext = createContext<ContentContextType | undefined>(undefined);
@@ -75,6 +76,81 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
       setContent(transformedContent);
     } catch (error) {
       console.error('Unexpected error loading content:', error);
+    }
+  };
+
+  const loadTemplatesFromCanva = async (clientId: string, clientSecret: string): Promise<void> => {
+    try {
+      // Here we would typically call the Canva API using the provided credentials
+      // For this demo, we'll simulate fetching templates from Canva with a delay
+      // In a real implementation, you would:
+      // 1. Exchange the credentials for an OAuth token
+      // 2. Use the token to call the Canva API endpoints
+      // 3. Transform the response into your Template format
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Create mock Canva templates
+      const canvaTemplates: Template[] = [
+        {
+          id: "canva-template-1",
+          name: "Canva Instagram Story",
+          previewImage: "https://via.placeholder.com/1080x1920/FF5733/FFFFFF?text=Canva+Story",
+          dimensions: { width: 1080, height: 1920 },
+          category: "story",
+          platforms: ["instagram"],
+        },
+        {
+          id: "canva-template-2",
+          name: "Canva Facebook Post",
+          previewImage: "https://via.placeholder.com/1200x630/3358FF/FFFFFF?text=Canva+FB+Post",
+          dimensions: { width: 1200, height: 630 },
+          category: "post",
+          platforms: ["facebook"],
+        },
+        {
+          id: "canva-template-3",
+          name: "Canva LinkedIn Banner",
+          previewImage: "https://via.placeholder.com/1584x396/33FF57/FFFFFF?text=Canva+LinkedIn",
+          dimensions: { width: 1584, height: 396 },
+          category: "post",
+          platforms: ["linkedin"],
+        },
+        {
+          id: "canva-template-4",
+          name: "Canva Twitter Header",
+          previewImage: "https://via.placeholder.com/1500x500/FF33A8/FFFFFF?text=Canva+Twitter",
+          dimensions: { width: 1500, height: 500 },
+          category: "post",
+          platforms: ["twitter"],
+        }
+      ];
+      
+      // Add Canva templates to existing templates
+      setTemplates(prevTemplates => {
+        // Filter out any existing Canva templates first to avoid duplicates
+        const filteredTemplates = prevTemplates.filter(t => !t.id.startsWith('canva-'));
+        return [...filteredTemplates, ...canvaTemplates];
+      });
+      
+      // Store the templates in Supabase for persistence
+      await Promise.all(canvaTemplates.map(async template => {
+        await supabase
+          .from('templates')
+          .upsert({
+            id: template.id,
+            name: template.name,
+            preview_image: template.previewImage,
+            dimensions: template.dimensions,
+            category: template.category,
+            platforms: template.platforms
+          });
+      }));
+      
+    } catch (error) {
+      console.error('Error loading templates from Canva:', error);
+      throw new Error('Failed to load templates from Canva');
     }
   };
 
@@ -177,7 +253,8 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
     deleteContent,
     schedulePost,
     loadTemplates,
-    loadContent
+    loadContent,
+    loadTemplatesFromCanva
   };
 
   return (

@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContent } from '@/contexts/ContentContext';
 import { SocialPlatform, Content } from '@/types/content';
 import { Button } from '@/components/ui/button';
-import { Facebook, Instagram, Linkedin, Twitter, X, CheckCircle2 } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Twitter, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import CanvaIntegration from '@/components/templates/CanvaIntegration';
 import { useToast } from '@/hooks/use-toast';
@@ -15,12 +16,13 @@ const Templates = () => {
   const { templates, content } = useContent();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [platformFilter, setPlatformFilter] = useState<SocialPlatform | 'all'>('all');
-  const [showDrafts, setShowDrafts] = useState<boolean>(false);
+  const [showDrafts, setShowDrafts] = useState<boolean>(true); // Default to showing drafts
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [draggedContent, setDraggedContent] = useState<Content | null>(null);
   const [isPublishDialogOpen, setIsPublishDialogOpen] = useState<boolean>(false);
   const [selectedPlatforms, setSelectedPlatforms] = useState<SocialPlatform[]>([]);
   const [publishing, setPublishing] = useState<boolean>(false);
+  const [loadingTemplates, setLoadingTemplates] = useState<boolean>(false);
   const { toast } = useToast();
   
   // Filter templates based on selected filters
@@ -49,6 +51,11 @@ const Templates = () => {
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault(); // Necessary to allow drop
+  };
+
+  const clearSelectedTemplate = () => {
+    setSelectedTemplate(null);
+    setDraggedContent(null);
   };
   
   const handlePublish = async () => {
@@ -81,6 +88,7 @@ const Templates = () => {
           description: `Your post has been published to ${selectedPlatforms.length} platform(s).`
         });
         setIsPublishDialogOpen(false);
+        clearSelectedTemplate(); // Clear the draft after successful publishing
       } else {
         const failedPlatforms = results
           .filter(r => !r.success)
@@ -150,7 +158,7 @@ const Templates = () => {
         )}
 
         <div className={`flex-1 ${showDrafts ? "max-w-[calc(100%-300px)]" : ""}`}>
-          <div className="mb-6 flex gap-4">
+          <div className="mb-6 flex flex-wrap gap-4">
             <Tabs defaultValue="all" value={categoryFilter} onValueChange={setCategoryFilter}>
               <TabsList className="grid grid-cols-4">
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -171,66 +179,84 @@ const Templates = () => {
             </Tabs>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredTemplates.map(template => (
-              <div 
-                key={template.id} 
-                onDragOver={handleDragOver}
-                onDrop={() => handleDrop(template.id)}
-              >
-                <Card 
-                  className={`overflow-hidden card-hover ${selectedTemplate === template.id ? "ring-2 ring-brand-600" : ""}`}
-                >
-                  <div className="aspect-square overflow-hidden relative">
-                    <img 
-                      src={template.previewImage} 
-                      alt={template.name} 
-                      className="w-full h-full object-cover"
-                    />
-                    {draggedContent && selectedTemplate === template.id && (
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
-                        <p className="text-sm font-medium mb-2 text-center truncate max-w-full">
-                          {draggedContent.title}
-                        </p>
-                        <p className="text-xs text-center line-clamp-3">
-                          {(draggedContent.editedText || draggedContent.generatedText).substring(0, 100)}...
-                        </p>
-                        <Button 
-                          size="sm" 
-                          className="mt-4"
-                          onClick={openPublishDialog}
-                        >
-                          Publish
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium">{template.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {template.dimensions.width} x {template.dimensions.height}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {template.platforms.map(platform => (
-                        <div 
-                          key={platform}
-                          className="text-xs px-2 py-0.5 bg-muted rounded-full"
-                        >
-                          {platform}
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+          {loadingTemplates ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-600 mb-4" />
+                <p>Loading templates from Canva...</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredTemplates.map(template => (
+                <div 
+                  key={template.id} 
+                  onDragOver={handleDragOver}
+                  onDrop={() => handleDrop(template.id)}
+                >
+                  <Card 
+                    className={`overflow-hidden card-hover ${selectedTemplate === template.id ? "ring-2 ring-brand-600" : ""}`}
+                  >
+                    <div className="aspect-square overflow-hidden relative">
+                      <img 
+                        src={template.previewImage} 
+                        alt={template.name} 
+                        className="w-full h-full object-cover"
+                      />
+                      {draggedContent && selectedTemplate === template.id && (
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white p-4">
+                          <p className="text-sm font-medium mb-2 text-center truncate max-w-full">
+                            {draggedContent.title}
+                          </p>
+                          <p className="text-xs text-center line-clamp-3">
+                            {(draggedContent.editedText || draggedContent.generatedText).substring(0, 100)}...
+                          </p>
+                          <div className="flex gap-2 mt-4">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="bg-transparent text-white border-white hover:bg-white/20 hover:text-white"
+                              onClick={clearSelectedTemplate}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={openPublishDialog}
+                            >
+                              Publish
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-medium">{template.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {template.dimensions.width} x {template.dimensions.height}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {template.platforms.map(platform => (
+                          <div 
+                            key={platform}
+                            className="text-xs px-2 py-0.5 bg-muted rounded-full"
+                          >
+                            {platform}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          )}
           
-          {filteredTemplates.length === 0 && (
+          {filteredTemplates.length === 0 && !loadingTemplates && (
             <div className="text-center py-12">
               <h2 className="text-xl font-medium">No templates found</h2>
               <p className="text-muted-foreground mt-2">
-                Try adjusting your filters to see more templates.
+                Try adjusting your filters to see more templates or connect to Canva to import templates.
               </p>
             </div>
           )}
