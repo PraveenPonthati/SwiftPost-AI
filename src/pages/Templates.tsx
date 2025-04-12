@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContent } from '@/contexts/ContentContext';
 import { SocialPlatform, Content } from '@/types/content';
 import { Button } from '@/components/ui/button';
-import { Instagram, CheckCircle2, X } from 'lucide-react';
+import { Twitter, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/utils/socialService';
@@ -33,13 +32,12 @@ const Templates = () => {
   const [selectedColor, setSelectedColor] = useState<string>(TEMPLATE_COLORS[0].value);
   const { toast } = useToast();
   
-  // Filter templates based on selected filters
   const filteredTemplates = templates.filter(template => {
     if (categoryFilter !== 'all' && template.category !== categoryFilter) {
       return false;
     }
     
-    if (platformFilter !== 'all' && platformFilter !== 'instagram' && !template.platforms.includes(platformFilter)) {
+    if (platformFilter !== 'all' && platformFilter !== 'twitter' && !template.platforms.includes(platformFilter)) {
       return false;
     }
     
@@ -56,14 +54,14 @@ const Templates = () => {
   };
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault(); // Necessary to allow drop
+    e.preventDefault();
   };
 
   const clearSelectedTemplate = () => {
     setSelectedTemplate(null);
     setDraggedContent(null);
   };
-  
+
   const handlePublish = async () => {
     if (!draggedContent || selectedPlatforms.length === 0) {
       toast({
@@ -130,7 +128,7 @@ const Templates = () => {
 
   const openPublishDialog = () => {
     if (draggedContent && selectedTemplate) {
-      setSelectedPlatforms(['instagram']);
+      setSelectedPlatforms(['twitter']);
       setIsPublishDialogOpen(true);
     } else {
       toast({
@@ -182,7 +180,7 @@ const Templates = () => {
             <Tabs defaultValue="all" value={platformFilter} onValueChange={(value) => setPlatformFilter(value as SocialPlatform | 'all')}>
               <TabsList className="grid grid-cols-2">
                 <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="instagram">Instagram</TabsTrigger>
+                <TabsTrigger value="twitter">Twitter/X</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -230,7 +228,7 @@ const Templates = () => {
                       className="w-full h-full"
                       style={{ backgroundColor: selectedColor }}
                     >
-                      {template.platforms.filter(p => p === 'instagram').map((platform, index) => (
+                      {template.platforms.filter(p => p === 'twitter').map((platform) => (
                         <div 
                           key={platform}
                           className="absolute text-white text-opacity-20"
@@ -242,7 +240,7 @@ const Templates = () => {
                             fontWeight: 'bold'
                           }}
                         >
-                          <Instagram className="w-16 h-16 opacity-25" />
+                          <Twitter className="w-16 h-16 opacity-25" />
                         </div>
                       ))}
                     </div>
@@ -301,7 +299,6 @@ const Templates = () => {
         </div>
       </div>
       
-      {/* Publish Dialog */}
       <Dialog open={isPublishDialogOpen} onOpenChange={setIsPublishDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -312,13 +309,13 @@ const Templates = () => {
             <h3 className="text-sm font-medium mb-3">Select platforms</h3>
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={selectedPlatforms.includes('instagram') ? "default" : "outline"}
+                variant={selectedPlatforms.includes('twitter') ? "default" : "outline"}
                 size="sm"
-                onClick={() => togglePlatform('instagram')}
-                className={selectedPlatforms.includes('instagram') ? "bg-brand-600" : ""}
+                onClick={() => togglePlatform('twitter')}
+                className={selectedPlatforms.includes('twitter') ? "bg-brand-600" : ""}
               >
-                <Instagram className="mr-1 h-4 w-4" />
-                Instagram
+                <Twitter className="mr-1 h-4 w-4" />
+                Twitter/X
               </Button>
             </div>
           </div>

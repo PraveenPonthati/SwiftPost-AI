@@ -39,7 +39,7 @@ export const getConnectedAccounts = (): SocialAccount[] => {
   // Default accounts (not connected)
   return [
     { 
-      platform: 'instagram',
+      platform: 'twitter',
       username: '',
       connected: true,
     }
@@ -100,38 +100,42 @@ export const disconnectAccount = (platform: SocialPlatform): Promise<void> => {
 export const publishContent = async (options: PublishOptions): Promise<{ success: boolean; message: string }> => {
   const { platform, content, mediaUrl, scheduledTime } = options;
   
-  // Only handle Instagram platform as requested
-  if (platform === 'instagram') {
-    // Check if we have an API key for Instagram
-    const apiKey = getSocialApiKey(platform);
-    if (!apiKey) { 
+  // Only handle Twitter platform
+  if (platform === 'twitter') {
+    try {
+      // Call the Supabase Edge Function for Twitter posting
+      const { data, error } = await supabase.functions.invoke('twitter-post', {
+        body: { text: content }
+      });
+      
+      if (error) {
+        console.error('Error calling Twitter post function:', error);
+        return {
+          success: false,
+          message: `Failed to post to Twitter: ${error.message}`
+        };
+      }
+      
+      if (data && data.success === false) {
+        return {
+          success: false,
+          message: `Failed to post to Twitter: ${data.error || 'Unknown error'}`
+        };
+      }
+      
+      return { 
+        success: true, 
+        message: scheduledTime 
+          ? `Tweet scheduled for ${scheduledTime.toLocaleString()}` 
+          : `Tweet posted successfully` 
+      };
+    } catch (error: any) {
+      console.error('Twitter posting error:', error);
       return {
         success: false,
-        message: `API key for ${platform} is not set. Please connect your account first.`
+        message: `Error posting to Twitter: ${error.message || 'Unknown error'}`
       };
     }
-    
-    // In a real app, this would call the Instagram API
-    console.log(`Publishing to ${platform}:`, { content, mediaUrl, scheduledTime });
-    
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (Math.random() > 0.1) { // 90% success rate for demo
-          resolve({ 
-            success: true, 
-            message: scheduledTime 
-              ? `Content scheduled for ${platform} on ${scheduledTime.toLocaleString()}` 
-              : `Content published to ${platform}` 
-          });
-        } else {
-          resolve({ 
-            success: false, 
-            message: `Failed to publish to ${platform}. Please try again.` 
-          });
-        }
-      }, 1500);
-    });
   }
   
   return {
@@ -140,17 +144,17 @@ export const publishContent = async (options: PublishOptions): Promise<{ success
   };
 };
 
-// Format for Instagram meta graph api usage
+// Format for Twitter API credentials
 export const getMetaApiFormat = () => {
   return `
-# .env file format for META Graph API
+# Twitter API Credentials Format
 
-# Meta Developer App credentials
-META_APP_ID=your_app_id_here
-META_APP_SECRET=your_app_secret_here
-META_ACCESS_TOKEN=your_access_token_here
+# Consumer API Keys
+TWITTER_CONSUMER_KEY=your_api_key_here
+TWITTER_CONSUMER_SECRET=your_api_secret_here
 
-# Optional: User or Page ID
-META_USER_ID=your_user_or_page_id_here
+# Authentication Tokens
+TWITTER_ACCESS_TOKEN=your_access_token_here
+TWITTER_ACCESS_TOKEN_SECRET=your_access_token_secret_here
 `;
 };

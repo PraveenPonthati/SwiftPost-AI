@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Twitter } from 'lucide-react';
 import { SocialPlatform } from '@/types/content';
 import { connectAccount, disconnectAccount, getConnectedAccounts, getMetaApiFormat } from '@/utils/socialService';
 import { useToast } from '@/components/ui/use-toast';
@@ -72,7 +72,7 @@ const SocialConnector: React.FC<SocialConnectorProps> = ({ onAccountsUpdated }) 
   };
   
   const getPlatformIcon = (platform: string) => {
-    return '📸'; // Only Instagram icon
+    return <Twitter className="h-5 w-5" />;
   };
 
   return (
@@ -81,7 +81,7 @@ const SocialConnector: React.FC<SocialConnectorProps> = ({ onAccountsUpdated }) 
         <CardHeader>
           <CardTitle>Social Media Accounts</CardTitle>
           <CardDescription>
-            Connect your Instagram account to publish content
+            Connect your Twitter account to publish content
           </CardDescription>
         </CardHeader>
         <CardContent>

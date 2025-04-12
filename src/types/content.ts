@@ -1,5 +1,5 @@
 
-export type SocialPlatform = 'instagram' | 'facebook' | 'linkedin';
+export type SocialPlatform = 'twitter';
 
 export interface Template {
   id: string;

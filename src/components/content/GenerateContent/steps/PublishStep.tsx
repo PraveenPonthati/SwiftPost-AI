@@ -7,7 +7,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Content, SocialPlatform } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent, getConnectedAccounts } from '@/utils/socialService';
-import { Instagram } from 'lucide-react';
+import { Twitter } from 'lucide-react';
 import PostPreview from '@/components/content/PostPreview';
 
 interface PublishStepProps {
@@ -107,14 +107,14 @@ export const PublishStep: React.FC<PublishStepProps> = ({
                 <h3 className="text-sm font-medium mb-2">Select platforms</h3>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={content.platforms.includes('instagram') ? "default" : "outline"}
+                    variant={content.platforms.includes('twitter') ? "default" : "outline"}
                     size="sm"
-                    onClick={() => togglePlatform('instagram')}
-                    className={content.platforms.includes('instagram') ? "bg-brand-600" : ""}
-                    disabled={!connectedAccounts.some(a => a.platform === 'instagram')}
+                    onClick={() => togglePlatform('twitter')}
+                    className={content.platforms.includes('twitter') ? "bg-brand-600" : ""}
+                    disabled={!connectedAccounts.some(a => a.platform === 'twitter')}
                   >
-                    <Instagram className="mr-1 h-4 w-4" />
-                    Instagram
+                    <Twitter className="mr-1 h-4 w-4" />
+                    Twitter/X
                   </Button>
                 </div>
                 
