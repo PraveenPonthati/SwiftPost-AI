@@ -24,8 +24,10 @@ const Settings = () => {
       loadApiKeysFromDatabase();
     } else {
       // If not logged in, fallback to localStorage
-      setOpenaiKey(getApiKey('openai') || '');
-      setGeminiKey(getApiKey('gemini') || '');
+      const openaiKeyLocal = getApiKey('openai') || '';
+      const geminiKeyLocal = getApiKey('gemini') || '';
+      setOpenaiKey(openaiKeyLocal);
+      setGeminiKey(geminiKeyLocal);
     }
   }, [user]);
 

@@ -1,16 +1,17 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
-  getChatHistory, 
-  getChatMessages, 
-  saveChatMessage, 
-  createNewChat, 
-  deleteChat,
   ChatMessage,
   ChatSession,
   supabase
 } from '@/utils/supabaseClient';
+import {
+  getChatHistory,
+  getChatMessages,
+  saveChatMessage,
+  createNewChat,
+  deleteChat
+} from '@/utils/chatService';
 import { 
   generateContent, 
   getAvailableModels, 
