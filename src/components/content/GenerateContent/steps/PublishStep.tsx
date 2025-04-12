@@ -7,7 +7,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Content, SocialPlatform } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent, getConnectedAccounts } from '@/utils/socialService';
-import { Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import { Instagram } from 'lucide-react';
 import PostPreview from '@/components/content/PostPreview';
 
 interface PublishStepProps {
@@ -115,36 +115,6 @@ export const PublishStep: React.FC<PublishStepProps> = ({
                   >
                     <Instagram className="mr-1 h-4 w-4" />
                     Instagram
-                  </Button>
-                  <Button
-                    variant={content.platforms.includes('facebook') ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => togglePlatform('facebook')}
-                    className={content.platforms.includes('facebook') ? "bg-brand-600" : ""}
-                    disabled={!connectedAccounts.some(a => a.platform === 'facebook')}
-                  >
-                    <Facebook className="mr-1 h-4 w-4" />
-                    Facebook
-                  </Button>
-                  <Button
-                    variant={content.platforms.includes('twitter') ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => togglePlatform('twitter')}
-                    className={content.platforms.includes('twitter') ? "bg-brand-600" : ""}
-                    disabled={!connectedAccounts.some(a => a.platform === 'twitter')}
-                  >
-                    <Twitter className="mr-1 h-4 w-4" />
-                    Twitter
-                  </Button>
-                  <Button
-                    variant={content.platforms.includes('linkedin') ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => togglePlatform('linkedin')}
-                    className={content.platforms.includes('linkedin') ? "bg-brand-600" : ""}
-                    disabled={!connectedAccounts.some(a => a.platform === 'linkedin')}
-                  >
-                    <Linkedin className="mr-1 h-4 w-4" />
-                    LinkedIn
                   </Button>
                 </div>
                 

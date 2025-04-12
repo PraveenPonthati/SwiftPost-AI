@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 import { SocialPlatform } from '@/types/content';
 import { connectAccount, disconnectAccount, getConnectedAccounts, getMetaApiFormat } from '@/utils/socialService';
@@ -73,18 +72,7 @@ const SocialConnector: React.FC<SocialConnectorProps> = ({ onAccountsUpdated }) 
   };
   
   const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'instagram':
-        return '📸';
-      case 'facebook':
-        return '👍';
-      case 'twitter':
-        return '🐦';
-      case 'linkedin':
-        return '💼';
-      default:
-        return '📱';
-    }
+    return '📸'; // Only Instagram icon
   };
 
   return (
@@ -93,7 +81,7 @@ const SocialConnector: React.FC<SocialConnectorProps> = ({ onAccountsUpdated }) 
         <CardHeader>
           <CardTitle>Social Media Accounts</CardTitle>
           <CardDescription>
-            Connect your social media accounts to publish content
+            Connect your Instagram account to publish content
           </CardDescription>
         </CardHeader>
         <CardContent>

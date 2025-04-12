@@ -41,22 +41,7 @@ export const getConnectedAccounts = (): SocialAccount[] => {
     { 
       platform: 'instagram',
       username: '',
-      connected: false,
-    },
-    {
-      platform: 'facebook',
-      username: '',
-      connected: false,
-    },
-    {
-      platform: 'twitter',
-      username: '',
-      connected: true, // Set Twitter as connected by default for this demo
-    },
-    {
-      platform: 'linkedin',
-      username: '',
-      connected: false,
+      connected: true,
     }
   ];
 };
@@ -115,76 +100,44 @@ export const disconnectAccount = (platform: SocialPlatform): Promise<void> => {
 export const publishContent = async (options: PublishOptions): Promise<{ success: boolean; message: string }> => {
   const { platform, content, mediaUrl, scheduledTime } = options;
   
-  // Twitter-specific handling using Edge Function
-  if (platform === 'twitter') {
-    try {
-      console.log("Publishing to Twitter:", content);
-      
-      const { data, error } = await supabase.functions.invoke('twitter-post', {
-        body: { text: content }
-      });
-      
-      if (error) {
-        console.error("Twitter posting error:", error);
-        return {
-          success: false,
-          message: `Failed to post to Twitter: ${error.message}`
-        };
-      }
-      
-      console.log("Twitter API response:", data);
-      
-      if (data.success) {
-        return {
-          success: true,
-          message: `Content published to Twitter successfully`
-        };
-      } else {
-        return {
-          success: false,
-          message: `Failed to post to Twitter: ${data.error || 'Unknown error'}`
-        };
-      }
-    } catch (error: any) {
-      console.error("Twitter API error:", error);
+  // Only handle Instagram platform as requested
+  if (platform === 'instagram') {
+    // Check if we have an API key for Instagram
+    const apiKey = getSocialApiKey(platform);
+    if (!apiKey) { 
       return {
         success: false,
-        message: `Error posting to Twitter: ${error.message}`
+        message: `API key for ${platform} is not set. Please connect your account first.`
       };
     }
+    
+    // In a real app, this would call the Instagram API
+    console.log(`Publishing to ${platform}:`, { content, mediaUrl, scheduledTime });
+    
+    // Simulate API call
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (Math.random() > 0.1) { // 90% success rate for demo
+          resolve({ 
+            success: true, 
+            message: scheduledTime 
+              ? `Content scheduled for ${platform} on ${scheduledTime.toLocaleString()}` 
+              : `Content published to ${platform}` 
+          });
+        } else {
+          resolve({ 
+            success: false, 
+            message: `Failed to publish to ${platform}. Please try again.` 
+          });
+        }
+      }, 1500);
+    });
   }
   
-  // For other platforms, use the mock implementation
-  // Check if we have an API key for this platform
-  const apiKey = getSocialApiKey(platform);
-  if (!apiKey && platform !== 'twitter') { 
-    return {
-      success: false,
-      message: `API key for ${platform} is not set. Please connect your account first.`
-    };
-  }
-  
-  // In a real app, this would call the platform's API
-  console.log(`Publishing to ${platform}:`, { content, mediaUrl, scheduledTime });
-  
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (Math.random() > 0.1) { // 90% success rate for demo
-        resolve({ 
-          success: true, 
-          message: scheduledTime 
-            ? `Content scheduled for ${platform} on ${scheduledTime.toLocaleString()}` 
-            : `Content published to ${platform}` 
-        });
-      } else {
-        resolve({ 
-          success: false, 
-          message: `Failed to publish to ${platform}. Please try again.` 
-        });
-      }
-    }, 1500);
-  });
+  return {
+    success: false,
+    message: `Publishing to ${platform} is not supported.`
+  };
 };
 
 // Format for Instagram meta graph api usage

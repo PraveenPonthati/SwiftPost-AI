@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useContent } from '@/contexts/ContentContext';
 import { SocialPlatform, Content } from '@/types/content';
 import { Button } from '@/components/ui/button';
-import { Facebook, Instagram, Linkedin, Twitter, CheckCircle2, X } from 'lucide-react';
+import { Instagram, CheckCircle2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent } from '@/utils/socialService';
@@ -39,7 +39,7 @@ const Templates = () => {
       return false;
     }
     
-    if (platformFilter !== 'all' && !template.platforms.includes(platformFilter)) {
+    if (platformFilter !== 'all' && platformFilter !== 'instagram' && !template.platforms.includes(platformFilter)) {
       return false;
     }
     
@@ -130,7 +130,7 @@ const Templates = () => {
 
   const openPublishDialog = () => {
     if (draggedContent && selectedTemplate) {
-      setSelectedPlatforms([]);
+      setSelectedPlatforms(['instagram']);
       setIsPublishDialogOpen(true);
     } else {
       toast({
@@ -180,12 +180,9 @@ const Templates = () => {
             </Tabs>
             
             <Tabs defaultValue="all" value={platformFilter} onValueChange={(value) => setPlatformFilter(value as SocialPlatform | 'all')}>
-              <TabsList className="grid grid-cols-5">
+              <TabsList className="grid grid-cols-2">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="instagram">Instagram</TabsTrigger>
-                <TabsTrigger value="facebook">Facebook</TabsTrigger>
-                <TabsTrigger value="twitter">Twitter</TabsTrigger>
-                <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -233,22 +230,19 @@ const Templates = () => {
                       className="w-full h-full"
                       style={{ backgroundColor: selectedColor }}
                     >
-                      {template.platforms.map((platform, index) => (
+                      {template.platforms.filter(p => p === 'instagram').map((platform, index) => (
                         <div 
                           key={platform}
                           className="absolute text-white text-opacity-20"
                           style={{
-                            top: 10 + (index * 25) + '%',
+                            top: '50%',
                             left: '50%',
-                            transform: 'translateX(-50%)',
+                            transform: 'translate(-50%, -50%)',
                             fontSize: '4rem',
                             fontWeight: 'bold'
                           }}
                         >
-                          {platform === 'instagram' && <Instagram className="w-16 h-16 opacity-25" />}
-                          {platform === 'facebook' && <Facebook className="w-16 h-16 opacity-25" />}
-                          {platform === 'twitter' && <Twitter className="w-16 h-16 opacity-25" />}
-                          {platform === 'linkedin' && <Linkedin className="w-16 h-16 opacity-25" />}
+                          <Instagram className="w-16 h-16 opacity-25" />
                         </div>
                       ))}
                     </div>
@@ -325,33 +319,6 @@ const Templates = () => {
               >
                 <Instagram className="mr-1 h-4 w-4" />
                 Instagram
-              </Button>
-              <Button
-                variant={selectedPlatforms.includes('facebook') ? "default" : "outline"}
-                size="sm"
-                onClick={() => togglePlatform('facebook')}
-                className={selectedPlatforms.includes('facebook') ? "bg-brand-600" : ""}
-              >
-                <Facebook className="mr-1 h-4 w-4" />
-                Facebook
-              </Button>
-              <Button
-                variant={selectedPlatforms.includes('twitter') ? "default" : "outline"}
-                size="sm"
-                onClick={() => togglePlatform('twitter')}
-                className={selectedPlatforms.includes('twitter') ? "bg-brand-600" : ""}
-              >
-                <Twitter className="mr-1 h-4 w-4" />
-                Twitter
-              </Button>
-              <Button
-                variant={selectedPlatforms.includes('linkedin') ? "default" : "outline"}
-                size="sm"
-                onClick={() => togglePlatform('linkedin')}
-                className={selectedPlatforms.includes('linkedin') ? "bg-brand-600" : ""}
-              >
-                <Linkedin className="mr-1 h-4 w-4" />
-                LinkedIn
               </Button>
             </div>
           </div>

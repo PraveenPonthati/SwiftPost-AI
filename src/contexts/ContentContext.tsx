@@ -150,10 +150,16 @@ export const ContentProvider: React.FC<ContentProviderProps> = ({ children }) =>
   };
 
   const schedulePost = (contentId: string, platform: string, date: Date) => {
+    // Only allow Instagram as the platform
+    if (platform !== 'instagram') {
+      console.warn('Only Instagram is supported as a platform');
+      return;
+    }
+    
     const newScheduledPost: ScheduledPost = {
       id: `scheduled-${Date.now()}`,
       contentId,
-      platform: platform as SocialPlatform,
+      platform: 'instagram',
       scheduledFor: date,
       status: "pending"
     };
