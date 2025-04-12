@@ -8,8 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ArrowRight } from 'lucide-react';
 import { Content } from '@/types/content';
-import TemplateSelector from '@/components/content/TemplateSelector';
-import PostPreview from '@/components/content/PostPreview';
 
 interface CustomizeStepProps {
   content: Content | null;
@@ -29,10 +27,6 @@ export const CustomizeStep: React.FC<CustomizeStepProps> = ({
   active
 }) => {
   if (!content) return null;
-
-  const handleTemplateSelected = (templateId: string) => {
-    onTemplateSelected(templateId);
-  };
 
   return (
     <TabsContent value="customize" forceMount hidden={!active}>
@@ -64,28 +58,29 @@ export const CustomizeStep: React.FC<CustomizeStepProps> = ({
                 />
               </div>
             </CardContent>
-          </Card>
-          
-          <TemplateSelector
-            selectedTemplateId={content.selectedTemplateId}
-            onSelectTemplate={handleTemplateSelected}
-          />
-        </div>
-        
-        <div className="md:col-span-2">
-          <PostPreview content={content} />
-          
-          <Card className="mt-6">
-            <CardFooter className="pt-6">
+            <CardFooter>
               <Button 
                 onClick={onContinue} 
                 className="w-full"
-                disabled={!content.editedText || !content.selectedTemplateId}
+                disabled={!content.editedText}
               >
-                Continue
+                Continue to Publish
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
+          </Card>
+        </div>
+        
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted p-6 rounded-md whitespace-pre-wrap">
+                {content.editedText || content.generatedText}
+              </div>
+            </CardContent>
           </Card>
         </div>
       </div>

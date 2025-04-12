@@ -8,7 +8,6 @@ import { Content, SocialPlatform } from '@/types/content';
 import { useToast } from '@/hooks/use-toast';
 import { publishContent, getConnectedAccounts } from '@/utils/socialService';
 import { Twitter } from 'lucide-react';
-import PostPreview from '@/components/content/PostPreview';
 
 interface PublishStepProps {
   content: Content | null;
@@ -124,6 +123,13 @@ export const PublishStep: React.FC<PublishStepProps> = ({
                   </p>
                 )}
               </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium mb-2">Content Preview</h3>
+                <div className="p-4 bg-muted rounded-md whitespace-pre-wrap">
+                  {content.editedText || content.generatedText}
+                </div>
+              </div>
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button 
@@ -153,10 +159,42 @@ export const PublishStep: React.FC<PublishStepProps> = ({
         </div>
         
         <div className="md:col-span-2">
-          <PostPreview 
-            content={content} 
-            onSchedule={onSchedule}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Post Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium">Title</h3>
+                  <p className="text-sm text-muted-foreground">{content.title || "Untitled"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium">Platforms</h3>
+                  <div className="flex gap-1 mt-1">
+                    {content.platforms.length > 0 ? content.platforms.map(platform => (
+                      <span key={platform} className="text-xs px-2 py-1 bg-muted rounded-full">
+                        {platform}
+                      </span>
+                    )) : (
+                      <span className="text-xs text-muted-foreground">No platforms selected</span>
+                    )}
+                  </div>
+                </div>
+                
+                {content.scheduledFor && (
+                  <div>
+                    <h3 className="text-sm font-medium">Scheduled For</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {content.scheduledFor.toLocaleDateString()} at {' '}
+                      {content.scheduledFor.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </TabsContent>

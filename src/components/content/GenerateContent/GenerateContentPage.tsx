@@ -39,7 +39,7 @@ export const GenerateContentPage: React.FC = () => {
           title: title,
           generatedText: text,
           editedText: text,
-          selectedTemplateId: null,
+          selectedTemplateId: "default", // Set a default template ID so isValid() passes
           imageUrl: null,
           platforms: []
         });
@@ -49,7 +49,8 @@ export const GenerateContentPage: React.FC = () => {
         await updateContent(currentContent.id, { 
           title: title,
           generatedText: text,
-          editedText: text
+          editedText: text,
+          selectedTemplateId: "default" // Set a default template ID so isValid() passes
         });
         
         setCurrentContent(prev => {
@@ -58,7 +59,8 @@ export const GenerateContentPage: React.FC = () => {
             ...prev, 
             title: title,
             generatedText: text,
-            editedText: text
+            editedText: text,
+            selectedTemplateId: "default"
           };
         });
       }
@@ -77,6 +79,7 @@ export const GenerateContentPage: React.FC = () => {
   };
 
   const handleTemplateSelected = async (templateId: string) => {
+    // This function is kept for backward compatibility
     if (!currentContent) return;
     
     try {
@@ -200,8 +203,14 @@ export const GenerateContentPage: React.FC = () => {
   const handleSelectContent = async (content: Content) => {
     setCurrentContent(content);
     
+    // Ensure content has a template ID
+    if (!content.selectedTemplateId) {
+      await updateContent(content.id, { selectedTemplateId: "default" });
+      content.selectedTemplateId = "default";
+    }
+    
     // Determine which tab to activate based on content state
-    if (content.selectedTemplateId && content.editedText) {
+    if (content.editedText) {
       setActiveTab('publish');
     } else if (content.generatedText) {
       setActiveTab('customize');
@@ -220,7 +229,7 @@ export const GenerateContentPage: React.FC = () => {
           title: '',
           generatedText: '',
           editedText: '',
-          selectedTemplateId: null,
+          selectedTemplateId: "default",
           imageUrl: null,
           platforms: []
         });
@@ -248,7 +257,6 @@ export const GenerateContentPage: React.FC = () => {
     return (
       currentContent.title &&
       (currentContent.editedText || currentContent.generatedText) &&
-      currentContent.selectedTemplateId &&
       currentContent.platforms.length > 0
     );
   };
@@ -280,7 +288,7 @@ export const GenerateContentPage: React.FC = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             hasGeneratedContent={!!currentContent?.generatedText}
-            hasCustomizedContent={!!currentContent?.editedText && !!currentContent?.selectedTemplateId}
+            hasCustomizedContent={!!currentContent?.editedText}
           >
             <GenerateStep
               onContentGenerated={handleContentGenerated}
