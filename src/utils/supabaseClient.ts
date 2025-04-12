@@ -4,23 +4,6 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
-// Types for chat messages and history
-export interface ChatMessage {
-  id?: string;
-  chat_id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  created_at?: string;
-}
-
-export interface ChatSession {
-  id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  user_id?: string;
-}
-
 // Export the supabase client from the integrations directory
 export { supabase };
 
@@ -28,7 +11,7 @@ export { supabase };
 export const testSupabaseConnection = async () => {
   try {
     console.log('Testing Supabase connection...');
-    const { data, error } = await supabase.from('chat_sessions').select('count').limit(1);
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
     
     if (error) {
       console.error('Supabase connection test failed:', error);
@@ -70,85 +53,81 @@ export const generateTitleFromPrompt = (prompt: string, maxLength: number = 50):
   return importantWords.join(' ') + (words.length > 5 ? '...' : '');
 };
 
-// Chat History functions
-export const createNewChat = async (initialTitle: string = 'New Chat'): Promise<ChatSession | null> => {
-  try {
-    console.log('Creating new chat with title:', initialTitle);
-    
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    const newChat = {
-      title: initialTitle,
-      updated_at: new Date().toISOString(),
-      user_id: userId // Associate chat with user if logged in
-    };
+// Types for API keys
+export interface ApiKey {
+  id: string;
+  user_id: string;
+  provider: string;
+  api_key: string;
+  created_at: string;
+  updated_at: string;
+}
 
-    const { data, error } = await supabase
-      .from('chat_sessions')
-      .insert([newChat])
-      .select()
-      .single();
+// Save API key to the database
+export const saveApiKey = async (provider: string, apiKey: string, userId: string): Promise<boolean> => {
+  try {
+    console.log(`Saving ${provider} API key for user ${userId}`);
+    
+    const { error } = await supabase
+      .from('user_api_keys')
+      .upsert({
+        user_id: userId,
+        provider,
+        api_key: apiKey,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,provider'
+      });
 
     if (error) {
-      console.error('Error creating new chat:', error);
+      console.error(`Error saving ${provider} API key:`, error);
       toast({
-        title: 'Failed to create chat',
+        title: `Failed to save ${provider} API key`,
         description: `Database error: ${error.message}`,
         variant: 'destructive',
       });
-      return null;
+      return false;
     }
     
-    console.log('Successfully created new chat:', data);
-    return data;
+    console.log(`Successfully saved ${provider} API key`);
+    return true;
   } catch (error: any) {
-    console.error('Exception creating new chat:', error);
+    console.error(`Exception saving ${provider} API key:`, error);
     toast({
-      title: 'Failed to create chat',
+      title: `Failed to save ${provider} API key`,
       description: error.message || 'Unknown error occurred',
       variant: 'destructive',
     });
-    return null;
+    return false;
   }
 };
 
-export const getChatHistory = async (): Promise<ChatSession[]> => {
+// Get API keys for a user
+export const getUserApiKeys = async (userId: string): Promise<ApiKey[]> => {
   try {
-    console.log('Fetching chat history...');
+    console.log(`Fetching API keys for user ${userId}...`);
     
-    // Get current user
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    let query = supabase
-      .from('chat_sessions')
+    const { data, error } = await supabase
+      .from('user_api_keys')
       .select('*')
-      .order('updated_at', { ascending: false });
-    
-    // Filter by user_id if user is logged in
-    if (session?.user) {
-      query = query.eq('user_id', session.user.id);
-    }
-    
-    const { data, error } = await query;
+      .eq('user_id', userId);
 
     if (error) {
-      console.error('Error fetching chat history:', error);
+      console.error('Error fetching API keys:', error);
       toast({
-        title: 'Failed to load chat history',
+        title: 'Failed to load API keys',
         description: `Database error: ${error.message}`,
         variant: 'destructive',
       });
       return [];
     }
     
-    console.log('Successfully fetched chat history:', data);
+    console.log(`Successfully fetched ${data?.length || 0} API keys for user ${userId}`);
     return data || [];
   } catch (error: any) {
-    console.error('Exception fetching chat history:', error);
+    console.error('Exception fetching API keys:', error);
     toast({
-      title: 'Failed to load chat history',
+      title: 'Failed to load API keys',
       description: error.message || 'Unknown error occurred',
       variant: 'destructive',
     });
@@ -156,101 +135,36 @@ export const getChatHistory = async (): Promise<ChatSession[]> => {
   }
 };
 
-export const getChatMessages = async (chatId: string): Promise<ChatMessage[]> => {
+// Get a specific API key for a user
+export const getUserApiKey = async (userId: string, provider: string): Promise<string | null> => {
   try {
-    console.log(`Fetching messages for chat ${chatId}...`);
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('chat-id', chatId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching chat messages:', error);
-      toast({
-        title: 'Failed to load chat messages',
-        description: `Database error: ${error.message}`,
-        variant: 'destructive',
-      });
-      return [];
-    }
-    
-    console.log(`Successfully fetched ${data?.length || 0} messages for chat ${chatId}`);
-    
-    // Transform data to match the ChatMessage interface
-    const messages: ChatMessage[] = data.map(item => ({
-      id: item.id,
-      chat_id: item['chat-id'], // Map from database column to interface property
-      role: item.role as 'user' | 'assistant',
-      content: item.content,
-      created_at: item.created_at
-    }));
-    
-    return messages;
-  } catch (error: any) {
-    console.error('Exception fetching chat messages:', error);
-    toast({
-      title: 'Failed to load chat messages',
-      description: error.message || 'Unknown error occurred',
-      variant: 'destructive',
-    });
-    return [];
-  }
-};
-
-export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage | null> => {
-  try {
-    console.log('Saving chat message:', message);
-    
-    // Transform to match the database column name
-    const dbMessage = {
-      'chat-id': message.chat_id, // Map from interface property to database column
-      content: message.content,
-      role: message.role
-    };
+    console.log(`Fetching ${provider} API key for user ${userId}...`);
     
     const { data, error } = await supabase
-      .from('chat_messages')
-      .insert([dbMessage])
-      .select()
+      .from('user_api_keys')
+      .select('api_key')
+      .eq('user_id', userId)
+      .eq('provider', provider)
       .single();
 
     if (error) {
-      console.error('Error saving chat message:', error);
-      toast({
-        title: 'Failed to save message',
-        description: `Database error: ${error.message}`,
-        variant: 'destructive',
-      });
+      if (error.code !== 'PGRST116') { // No rows returned
+        console.error(`Error fetching ${provider} API key:`, error);
+        toast({
+          title: `Failed to load ${provider} API key`,
+          description: `Database error: ${error.message}`,
+          variant: 'destructive',
+        });
+      }
       return null;
     }
     
-    console.log('Successfully saved chat message:', data);
-    
-    // Update the timestamp on the chat session
-    const updateResult = await supabase
-      .from('chat_sessions')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', message.chat_id);
-      
-    if (updateResult.error) {
-      console.error('Error updating chat timestamp:', updateResult.error);
-    }
-    
-    // Transform response to match ChatMessage interface
-    const savedMessage: ChatMessage = {
-      id: data.id,
-      chat_id: data['chat-id'], // Map from database column to interface property
-      role: data.role as 'user' | 'assistant',
-      content: data.content,
-      created_at: data.created_at
-    };
-    
-    return savedMessage;
+    console.log(`Successfully fetched ${provider} API key`);
+    return data?.api_key || null;
   } catch (error: any) {
-    console.error('Exception saving chat message:', error);
+    console.error(`Exception fetching ${provider} API key:`, error);
     toast({
-      title: 'Failed to save message',
+      title: `Failed to load ${provider} API key`,
       description: error.message || 'Unknown error occurred',
       variant: 'destructive',
     });
@@ -258,33 +172,33 @@ export const saveChatMessage = async (message: ChatMessage): Promise<ChatMessage
   }
 };
 
-export const updateChatTitle = async (chatId: string, title: string): Promise<boolean> => {
+// Delete an API key
+export const deleteApiKey = async (userId: string, provider: string): Promise<boolean> => {
   try {
-    console.log(`Updating title for chat ${chatId} to "${title}"`);
+    console.log(`Deleting ${provider} API key for user ${userId}...`);
+    
     const { error } = await supabase
-      .from('chat_sessions')
-      .update({ 
-        title,
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', chatId);
+      .from('user_api_keys')
+      .delete()
+      .eq('user_id', userId)
+      .eq('provider', provider);
 
     if (error) {
-      console.error('Error updating chat title:', error);
+      console.error(`Error deleting ${provider} API key:`, error);
       toast({
-        title: 'Failed to update chat title',
+        title: `Failed to delete ${provider} API key`,
         description: `Database error: ${error.message}`,
         variant: 'destructive',
       });
       return false;
     }
     
-    console.log(`Successfully updated title for chat ${chatId}`);
+    console.log(`Successfully deleted ${provider} API key`);
     return true;
   } catch (error: any) {
-    console.error('Exception updating chat title:', error);
+    console.error(`Exception deleting ${provider} API key:`, error);
     toast({
-      title: 'Failed to update chat title',
+      title: `Failed to delete ${provider} API key`,
       description: error.message || 'Unknown error occurred',
       variant: 'destructive',
     });
@@ -292,46 +206,3 @@ export const updateChatTitle = async (chatId: string, title: string): Promise<bo
   }
 };
 
-export const deleteChat = async (chatId: string): Promise<boolean> => {
-  try {
-    console.log(`Deleting chat ${chatId}...`);
-    
-    // Delete all messages in this chat
-    const { error: messagesError } = await supabase
-      .from('chat_messages')
-      .delete()
-      .eq('chat-id', chatId);
-
-    if (messagesError) {
-      console.error('Error deleting chat messages:', messagesError);
-      return false;
-    }
-
-    // Delete the chat session
-    const { error: sessionError } = await supabase
-      .from('chat_sessions')
-      .delete()
-      .eq('id', chatId);
-
-    if (sessionError) {
-      console.error('Error deleting chat session:', sessionError);
-      toast({
-        title: 'Failed to delete chat',
-        description: `Database error: ${sessionError.message}`,
-        variant: 'destructive',
-      });
-      return false;
-    }
-    
-    console.log(`Successfully deleted chat ${chatId}`);
-    return true;
-  } catch (error: any) {
-    console.error('Exception deleting chat:', error);
-    toast({
-      title: 'Failed to delete chat',
-      description: error.message || 'Unknown error occurred',
-      variant: 'destructive',
-    });
-    return false;
-  }
-};

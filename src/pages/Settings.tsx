@@ -63,7 +63,7 @@ const Settings = () => {
     }
   };
 
-  const saveApiKeyToDatabase = async (provider: string, apiKey: string) => {
+  const saveApiKeyToDatabase = async (provider: 'openai' | 'gemini', apiKey: string) => {
     if (!user) return;
 
     setIsSaving(prev => ({ ...prev, [provider]: true }));
