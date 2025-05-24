@@ -4,7 +4,8 @@
 
 **Deployed URL**: https://lovable.dev/projects/3c26f300-f8cd-4bfa-b318-4d9760c45808
 
-## How can I edit this code?
+## How do i work with it?
+**In settings navigate to API keys , where paste your Gemini-2.0-flash API key and Edit Twitter/X API key and secret keys inside your IDE**
 
 **Use your preferred IDE**
 
