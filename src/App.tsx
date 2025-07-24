@@ -20,7 +20,7 @@ import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
-// Protected Route component
+// Protected Route component, this is new branch 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
